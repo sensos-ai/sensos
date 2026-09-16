@@ -9,7 +9,7 @@ import {
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { createClient } from 'rivetkit/client'
+import { createSensosClient, type SensosClient } from '@sensos-ai/client'
 import { openSessionCatalog } from '@/storage/session-catalog'
 import type { ScriptedScenario } from '../fixtures/llm/scenario'
 import {
@@ -173,6 +173,7 @@ export async function startCliE2E(
     ? await bindRuntimePorts(port)
     : []
   const endpoint = `http://127.0.0.1:${port}`
+  const streamsEndpoint = `http://127.0.0.1:${port + 10}`
   const publicEndpoint = `http://127.0.0.1:${port + 20}`
   const {
     BUN_FEATURE_FLAG_NO_ORPHANS: _testRunnerOrphanPolicy,
@@ -298,6 +299,7 @@ export async function startCliE2E(
   }
   spawnCli('session')
   let stopped = false
+  const observerClients: SensosClient[] = []
 
   const api: CliE2E = {
     sessionId,
@@ -459,13 +461,21 @@ export async function startCliE2E(
       return stdout.trim()
     },
     connect(clientId = `e2e-observer-${crypto.randomUUID()}`) {
-      return createClient<any>(endpoint).session.getOrCreate([sessionId], {
+      const client = createSensosClient({
+        endpoint,
+        streamsEndpoint: options.remoteEngine
+          ? publicEndpoint
+          : streamsEndpoint,
+      })
+      observerClients.push(client)
+      return client.session.getOrCreate([sessionId], {
         params: { clientId },
       })
     },
     async stop() {
       if (stopped) return
       stopped = true
+      await Promise.all(observerClients.map(client => client.dispose()))
       child.stdin.end()
       if (child.exitCode === null) child.kill('SIGTERM')
       await Promise.race([child.exited, Bun.sleep(3_000)])

@@ -1,7 +1,7 @@
 import { confirm, select } from '@inquirer/prompts'
 import { resolve } from 'node:path'
-import { configureDefaultLogger } from 'rivetkit/log'
 import {
+  configureSensosClientLogger,
   DeferredSessionChatTransport,
   type SessionConnection,
 } from '@sensos-ai/client'
@@ -58,7 +58,7 @@ import { runAuthCommand } from './auth'
 import { normalizeCliInvocation } from '../state'
 import { recordTiming } from '@/shared/timing'
 
-configureDefaultLogger(
+configureSensosClientLogger(
   process.env.SENSOS_LOG_LEVEL === 'warn' ? 'warn' : 'silent'
 )
 

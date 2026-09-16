@@ -67,6 +67,7 @@ import { z as z4 } from "zod";
 var runStreamCursorSchema = z4.string().min(1);
 // packages/client/src/client.ts
 import { createClient } from "rivetkit/client";
+import { configureDefaultLogger } from "rivetkit/log";
 
 // packages/client/src/streams.ts
 import {
@@ -186,6 +187,9 @@ function createRunStreamReader(endpoint, recordTiming) {
 // packages/client/src/client.ts
 var REGISTRY_ENDPOINT_ENV = "SENSOS_REGISTRY_ENDPOINT";
 var STREAMS_URL_ENV = "SENSOS_STREAMS_URL";
+function configureSensosClientLogger(level = "silent") {
+  configureDefaultLogger(level);
+}
 function normalizeHttpEndpoint(value, label) {
   let parsed;
   try {
@@ -568,6 +572,7 @@ export {
   SessionChatTransport,
   appendRunStreamChunk,
   closeRunStream,
+  configureSensosClientLogger,
   createRunStreamReader,
   createSensosClient,
   deleteSessionActor,

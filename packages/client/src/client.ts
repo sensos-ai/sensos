@@ -3,6 +3,7 @@ import {
   type SensosRegistry,
 } from '@sensos-ai/shared'
 import { createClient, type Client } from 'rivetkit/client'
+import { configureDefaultLogger } from 'rivetkit/log'
 import { createRunStreamReader } from './streams'
 
 export const REGISTRY_ENDPOINT_ENV = 'SENSOS_REGISTRY_ENDPOINT'
@@ -29,6 +30,12 @@ export type SensosRemoteTarget = {
   streamsEndpoint: string
   token?: string
   namespace?: string
+}
+
+export function configureSensosClientLogger(
+  level: 'silent' | 'warn' = 'silent'
+): void {
+  configureDefaultLogger(level)
 }
 
 function normalizeHttpEndpoint(value: string, label: string): string {

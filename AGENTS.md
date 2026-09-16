@@ -18,9 +18,9 @@ The backend owns actor implementations, model execution, Rivet services, and
 the engine binary. Keep imports from `src/runtime/actors`, AgentOS, Rivet
 engine packages, and backend server modules out of this repository.
 
-Shared wire contracts are installed from the `sensos-ai/backend` shadcn
-registry under `sensos/protocol`. Update them through the registry rather
-than copying backend implementation files.
+This repository is authoritative for shared wire contracts. Keep them in
+`packages/shared`, consume them through `@sensos-ai/shared`, and regenerate the
+checked-in registry bundle rather than copying backend implementation files.
 
 ## Testing
 
