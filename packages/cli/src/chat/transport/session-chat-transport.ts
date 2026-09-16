@@ -6,7 +6,7 @@ import type {
   RunCommand,
   RunCompletion,
   SessionSnapshot as ProtocolSessionSnapshot,
-} from '@sensos-ai/protocol/session'
+} from '@sensos-ai/shared/session'
 import type { HarnessFeatures } from '@/chat/harness/features'
 import {
   readRunStream,

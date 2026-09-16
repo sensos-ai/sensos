@@ -1,0 +1,40 @@
+{
+  "name": "@sensos-ai/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "sensos": "./dist/sensos",
+    "sensos-dev": "./src/cli/bootstrap.ts"
+  },
+  "scripts": {
+    "build": "bun run scripts/build-sensos.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check",
+    "format": "biome format --write",
+    "test": "bun test --no-orphans --parallel tests/unit",
+    "test:e2e": "bun run build && bun test --no-orphans tests/e2e",
+    "test:stress": "bun run test --randomize --rerun-each=20",
+    "test:coverage": "bun run test --coverage --coverage-reporter=text --coverage-reporter=lcov",
+    "test:keyring": "bun run scripts/smoke-keyring.ts",
+    "global:link": "bun run build && bun link",
+    "global:unlink": "bun unlink",
+    "clean": "git clean -xdf node_modules dist \"*.tsbuildinfo\""
+  },
+  "dependencies": {
+    "@ai-sdk/gateway": "^4.0.80",
+    "@ai-sdk/openai": "^4.0.66",
+    "@ai-sdk/provider": "^4.0.15",
+    "@ai-sdk/provider-utils": "^5.0.41",
+    "@durable-streams/client": "^0.2.7",
+    "@inquirer/prompts": "^8.7.2",
+    "@napi-rs/keyring": "2.1.0",
+    "@sensos-ai/client": "workspace:*",
+    "@sensos-ai/shared": "workspace:*",
+    "ai": "^7",
+    "drizzle-orm": "0.45.2",
+    "nanoevents": "^10.0.0",
+    "rivetkit": "^2.3.12",
+    "zod": "^4"
+  }
+}

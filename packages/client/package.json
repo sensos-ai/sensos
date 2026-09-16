@@ -1,0 +1,17 @@
+{
+  "name": "@sensos-ai/client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check",
+    "format": "biome format --write",
+    "test": "bun test --pass-with-no-tests"
+  },
+  "dependencies": {
+    "@sensos-ai/shared": "workspace:*"
+  }
+}

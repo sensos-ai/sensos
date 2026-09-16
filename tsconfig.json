@@ -1,9 +1,5 @@
 {
   "compilerOptions": {
-    "paths": {
-      "@/*": ["./src/*"],
-      "@sensos-ai/*": ["./sensos/*"]
-    },
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -18,6 +14,5 @@
     "verbatimModuleSyntax": false,
     "noUncheckedSideEffectImports": true,
     "types": ["bun"]
-  },
-  "include": ["src", "sensos", "tests", "scripts"]
+  }
 }

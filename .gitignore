@@ -5,6 +5,8 @@ node_modules/
 dist/
 coverage/
 tests/e2e/artifacts/
+packages/cli/tests/e2e/artifacts/
+*.bun-build
 
 # turborepo / next
 .turbo/

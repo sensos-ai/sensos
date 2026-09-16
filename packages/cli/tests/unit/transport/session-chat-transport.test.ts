@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { UIMessage, UIMessageChunk } from 'ai'
-import type { DeliveryRoutedEvent } from '@sensos-ai/protocol/session'
+import type { DeliveryRoutedEvent } from '@sensos-ai/shared/session'
 import {
   DeferredSessionChatTransport,
   SessionChatTransport,

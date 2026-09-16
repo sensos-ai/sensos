@@ -3,27 +3,18 @@
   "cacheDir": ".turbo/cache",
   "cacheMaxAge": "30d",
   "cacheMaxSize": "20GB",
-  "globalEnv": [
-    "SENSOS_ENGINE_BUILD_ID",
-    "SENSOS_REGISTRY_ENDPOINT",
-    "SENSOS_STREAMS_URL"
-  ],
   "tasks": {
     "build": {
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.env"],
+      "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
-    "test:unit": {},
-    "test:e2e:run": {
+    "test": {
       "dependsOn": ["build"]
     },
     "clean": {
       "cache": false
     },
-    "lint": {
-      "cache": false
-    },
-    "lint:check": {},
+    "lint": {},
     "format": {
       "cache": false
     },

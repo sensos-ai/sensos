@@ -4,6 +4,21 @@
   "workspaces": {
     "": {
       "name": "sensos",
+      "devDependencies": {
+        "@biomejs/biome": "^2.5.13",
+        "@types/bun": "^1.4.2",
+        "@types/node": "^26.1.1",
+        "turbo": "^2.10.13",
+        "typescript": "^7.0.2",
+      },
+    },
+    "packages/cli": {
+      "name": "@sensos-ai/cli",
+      "version": "0.1.0",
+      "bin": {
+        "sensos": "./dist/sensos",
+        "sensos-dev": "./src/cli/bootstrap.ts",
+      },
       "dependencies": {
         "@ai-sdk/gateway": "^4.0.80",
         "@ai-sdk/openai": "^4.0.66",
@@ -12,18 +27,28 @@
         "@durable-streams/client": "^0.2.7",
         "@inquirer/prompts": "^8.7.2",
         "@napi-rs/keyring": "2.1.0",
+        "@sensos-ai/client": "workspace:*",
+        "@sensos-ai/shared": "workspace:*",
         "ai": "^7",
         "drizzle-orm": "0.45.2",
         "nanoevents": "^10.0.0",
         "rivetkit": "^2.3.12",
         "zod": "^4",
       },
-      "devDependencies": {
-        "@biomejs/biome": "^2.5.13",
-        "@types/bun": "^1.4.2",
-        "@types/node": "^26.1.1",
-        "turbo": "^2.10.13",
-        "typescript": "^7.0.2",
+    },
+    "packages/client": {
+      "name": "@sensos-ai/client",
+      "version": "0.1.0",
+      "dependencies": {
+        "@sensos-ai/shared": "workspace:*",
+      },
+    },
+    "packages/shared": {
+      "name": "@sensos-ai/shared",
+      "version": "0.1.0",
+      "dependencies": {
+        "ai": "^7",
+        "zod": "^4",
       },
     },
   },
@@ -263,6 +288,12 @@
     "@secure-exec/v8-linux-arm64-gnu": ["@secure-exec/v8-linux-arm64-gnu@0.2.1", "", { "os": "linux", "cpu": "arm64" }, "sha512-14subGhVV/gW35mYYm7Gv1Keeex7PxIgQfoKji/JH7wYyDuarP6kgaES0nJw+JXVkxEVud52c+kbcIjIggqCEw=="],
 
     "@secure-exec/v8-linux-x64-gnu": ["@secure-exec/v8-linux-x64-gnu@0.2.1", "", { "os": "linux", "cpu": "x64" }, "sha512-Az4s+vUf+78vWtsC7rTn/jQc6WKJafAdt2YpEjB4Gnu+sX+FFTIst1hRV4gJonbRyJdy6SW+OQ6DZatmwczorQ=="],
+
+    "@sensos-ai/cli": ["@sensos-ai/cli@workspace:packages/cli"],
+
+    "@sensos-ai/client": ["@sensos-ai/client@workspace:packages/client"],
+
+    "@sensos-ai/shared": ["@sensos-ai/shared@workspace:packages/shared"],
 
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 

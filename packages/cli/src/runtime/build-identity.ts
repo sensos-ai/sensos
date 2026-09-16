@@ -3,11 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { relative, resolve } from 'node:path'
 
 const SOURCE_DIRECTORIES = ['src'] as const
-const SOURCE_FILES = [
-  'package.json',
-  'bun.lock',
-  'scripts/build-sensos.ts',
-] as const
+const SOURCE_FILES = ['package.json', 'scripts/build-sensos.ts'] as const
 
 function collectFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true })
@@ -24,6 +20,7 @@ export function computeRuntimeSourceIdentity(projectRoot: string): string {
       collectFiles(resolve(projectRoot, directory))
     ),
     ...SOURCE_FILES.map(file => resolve(projectRoot, file)),
+    resolve(projectRoot, '../..', 'bun.lock'),
   ].sort()
   const hash = createHash('sha256')
 

@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 import type { UIMessage } from 'ai'
-import type { DeliveryRoutedEvent } from '@sensos-ai/protocol/session'
+import type { DeliveryRoutedEvent } from '@sensos-ai/shared/session'
 import { scriptedUsage, textTurn } from '../../fixtures/llm/scenario'
 import { startCliE2E } from '../../helpers/cli-e2e'
 import { waitForEvent, waitForValue } from '../../helpers/wait'
