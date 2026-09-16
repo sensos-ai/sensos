@@ -13,6 +13,8 @@
       "tsconfig.json",
       "biome.jsonc",
       "!node_modules",
+      "!**/.blume",
+      "!**/.blume-verify",
       "!.output",
       "!.turbo",
       "!dist",

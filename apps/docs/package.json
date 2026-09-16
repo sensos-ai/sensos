@@ -1,0 +1,21 @@
+{
+  "name": "@sensos-ai/docs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "blume dev",
+    "build": "blume build",
+    "preview": "blume preview",
+    "typecheck": "blume check",
+    "validate": "blume validate",
+    "lint": "biome check .",
+    "format": "biome check --write ."
+  },
+  "dependencies": {
+    "blume": "^1.7.0"
+  },
+  "devDependencies": {
+    "astro": "^7.3.2"
+  }
+}
