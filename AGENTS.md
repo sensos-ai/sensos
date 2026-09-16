@@ -29,10 +29,9 @@ changing or running tests, fixtures, helpers, runners, or test infrastructure.
 
 ## Engine compatibility
 
-- Increment `SENSOS_RUNTIME_PROTOCOL_VERSION` when the controller-to-engine
-  request or response schema changes.
 - Build releases with the matching `SENSOS_ENGINE_BUILD_ID` supplied by the
-  engine artifact release.
+  engine artifact release. The CLI uses this identity to decide whether an
+  existing local engine can be reused.
 - Run `bun run turbo:build` after source, dependency, generated protocol, or
   build-configuration changes before testing `dist/sensos`.
 - Local mode launches a separate `sensos-engine`; it never imports or embeds
