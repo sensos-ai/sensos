@@ -5,8 +5,8 @@ import {
   DeferredSessionChatTransport,
   SessionChatTransport,
   type SessionConnection,
-} from '@/chat/transport/session-chat-transport'
-import type { RunStreamItem } from '@/runtime/durable-run-stream'
+} from '../src/session-chat-transport'
+import type { RunStreamItem } from '../src/streams'
 
 const userMessage: UIMessage = {
   id: 'message-1',

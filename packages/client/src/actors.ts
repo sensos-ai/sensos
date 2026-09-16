@@ -41,7 +41,7 @@ function deserializeSingleKey(value: string): string | undefined {
   return escaping ? `${result}\\` : result
 }
 
-export async function waitForLocalSessionDeletion(
+export async function waitForSessionDeletion(
   endpoint: string,
   sessionId: string,
   options: {
@@ -65,7 +65,7 @@ export async function waitForLocalSessionDeletion(
   }
 }
 
-export async function deleteLocalSessionActor(
+export async function deleteSessionActor(
   endpoint: string,
   sessionId: string,
   fetcher: Fetcher = fetch

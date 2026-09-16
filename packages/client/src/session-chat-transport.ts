@@ -3,58 +3,26 @@ import type { Offset } from '@durable-streams/client'
 import type {
   DeliveryRoutedEvent,
   InboxMessage,
-  RunCommand,
-  RunCompletion,
   SessionSnapshot as ProtocolSessionSnapshot,
 } from '@sensos-ai/shared/session'
-import type { HarnessFeatures } from '@/chat/harness/features'
-import {
-  readRunStream,
-  type RunStreamItem,
-} from '@/runtime/durable-run-stream'
-import { createIdGeneratorWithPrefix } from '@/shared/utils'
-import type { ModelRef } from '@/chat/harness/providers/model'
-import { recordTiming } from '@/shared/timing'
+import type { HarnessFeatures, ModelRef } from '@sensos-ai/shared/models'
+import type { SensosSessionConnection } from './client'
+import type { RunStreamItem } from './streams'
 
-export type SessionConnection = SessionTransportConnection & {
-  setFeatures(features: HarnessFeatures): Promise<void>
-  setModel(model: ModelRef): Promise<void>
-  deleteSession(): Promise<void>
-  dispose(): Promise<void>
-  on(
-    event: 'messagesChanged',
-    callback: (event: { messages: UIMessage[]; revision: number }) => void
-  ): () => void
-}
+export type SessionConnection = SensosSessionConnection
 
 export type SessionSnapshot = ProtocolSessionSnapshot & {
   features: HarnessFeatures
 }
 
-type SessionTransportConnection = {
-  send(
-    name: 'runs',
-    input: RunCommand,
-    options: { wait: true; timeout: number; signal?: AbortSignal }
-  ): Promise<{
-    status: 'completed' | 'timedOut'
-    response?: RunCompletion
-  }>
-  send(name: 'inbox', input: InboxMessage): Promise<unknown>
-  deliver(input: InboxMessage): Promise<DeliveryRoutedEvent>
-  cancel(runId: string): Promise<{ cancelled: boolean; runId: string }>
-  getSession(): Promise<SessionSnapshot>
-  on(
-    event: 'titleChanged',
-    callback: (event: { title: string }) => void
-  ): () => void
-  on(
-    event: 'deliveryRouted',
-    callback: (event: DeliveryRoutedEvent) => void
-  ): () => void
-}
+const createIdempotencyId = () => `request-${crypto.randomUUID()}`
 
-const createIdempotencyId = createIdGeneratorWithPrefix('request')
+type TimingValue = boolean | number | string | null | undefined
+type RecordTiming = (
+  event: string,
+  fields?: Readonly<Record<string, TimingValue>>
+) => void
+const noopTiming: RecordTiming = () => {}
 
 type SessionChatRequestBody = {
   idempotencyId?: string
@@ -163,9 +131,10 @@ export function getSessionSnapshot(
 export class SessionChatTransport<UI_MESSAGE extends UIMessage = UIMessage>
   implements ChatTransport<UI_MESSAGE>
 {
-  readonly #connection: SessionTransportConnection
+  readonly #connection: SessionConnection
   readonly #clientId: string
   readonly #readStream: RunStreamReader
+  readonly #recordTiming: RecordTiming
   readonly #activeBridges = new Set<StreamBridge>()
   readonly #lastSeenOffset = new Map<string, Offset>()
 
@@ -174,11 +143,17 @@ export class SessionChatTransport<UI_MESSAGE extends UIMessage = UIMessage>
     options: {
       clientId?: string
       readStream?: RunStreamReader
+      recordTiming?: RecordTiming
     } = {}
   ) {
     this.#connection = connection
     this.#clientId = options.clientId ?? 'chat-client'
-    this.#readStream = options.readStream ?? readRunStream
+    this.#readStream =
+      options.readStream ??
+      (() => {
+        throw new Error('A durable run stream reader is required')
+      })
+    this.#recordTiming = options.recordTiming ?? noopTiming
   }
 
   async deliverMessage(
@@ -192,7 +167,7 @@ export class SessionChatTransport<UI_MESSAGE extends UIMessage = UIMessage>
   ): Promise<DeliveryRoutedEvent> {
     const id = options.id ?? createIdempotencyId()
     const startedAt = Date.now()
-    recordTiming('client.delivery.start', { requestId: id })
+    this.#recordTiming('client.delivery.start', { requestId: id })
     let cleanup = () => {}
     const receipt = new Promise<DeliveryRoutedEvent>((resolve, reject) => {
       let settled = false
@@ -240,7 +215,7 @@ export class SessionChatTransport<UI_MESSAGE extends UIMessage = UIMessage>
       })
       if (!options.waitForStart || routed.status !== 'queued') {
         cleanup()
-        recordTiming('client.delivery.routed', {
+        this.#recordTiming('client.delivery.routed', {
           requestId: id,
           runId: routed.runId,
           status: routed.status,
@@ -253,7 +228,7 @@ export class SessionChatTransport<UI_MESSAGE extends UIMessage = UIMessage>
       throw error
     }
     const routed = await receipt
-    recordTiming('client.delivery.routed', {
+    this.#recordTiming('client.delivery.routed', {
       requestId: id,
       runId: routed.runId,
       status: routed.status,

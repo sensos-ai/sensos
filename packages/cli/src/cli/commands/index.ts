@@ -4,7 +4,8 @@ import { configureDefaultLogger } from 'rivetkit/log'
 import {
   DeferredSessionChatTransport,
   type SessionConnection,
-} from '@/chat/transport'
+} from '@sensos-ai/client'
+import { SENSOS_PROTOCOL_VERSION } from '@sensos-ai/shared'
 import {
   resolveHarnessFeatures,
   type HarnessFeatures,
@@ -42,11 +43,10 @@ import {
   type RivetEngineConnection,
   type RivetEngineTarget,
 } from '@/runtime/engine-transport'
-import { createRunStreamReader } from '@/runtime/durable-run-stream'
 import {
-  deleteLocalSessionActor,
-  waitForLocalSessionDeletion,
-} from '@/runtime/sessions'
+  deleteSessionActor,
+  waitForSessionDeletion,
+} from '@sensos-ai/client'
 import {
   deleteSessionsConfirmationMessage,
   formatLocalSessions,
@@ -210,6 +210,7 @@ async function runChatSession(
       const client = engineConnection.client
       const handle = client.session.getOrCreate([sessionId], {
         createWithInput: {
+          protocolVersion: SENSOS_PROTOCOL_VERSION,
           sessionId,
           catalogRevision: catalogSession.revision,
           cwd: options.cwd,
@@ -219,7 +220,7 @@ async function runChatSession(
       })
       const nextConnection = handle.connect({
         clientId,
-      }) as unknown as SessionConnection
+      })
       connection = nextConnection
       await nextConnection.setFeatures(options.features)
       recordTiming('client.session.connected', {
@@ -246,10 +247,9 @@ async function runChatSession(
       connectionReady,
       {
         readStream: async function* (streamOptions) {
-          yield* createRunStreamReader((await engine).streamsEndpoint)(
-            streamOptions
-          )
+          yield* (await engine).client.readRunStream(streamOptions)
         },
+        recordTiming,
       }
     )
     outcome = await new AgentTUIRunner({
@@ -388,8 +388,8 @@ async function runChatSession(
             connection = undefined
             sessionDeleted = true
             const engineEndpoint = (await engine).endpoint
-            await deleteLocalSessionActor(engineEndpoint, sessionId)
-            await waitForLocalSessionDeletion(engineEndpoint, sessionId)
+            await deleteSessionActor(engineEndpoint, sessionId)
+            await waitForSessionDeletion(engineEndpoint, sessionId)
             return 'exit'
           },
         },
@@ -480,8 +480,8 @@ async function deleteSessions(
   const engine = await connectRivetEngine(target, root)
   try {
     for (const session of selected) {
-      await deleteLocalSessionActor(engine.endpoint, session.sessionId)
-      await waitForLocalSessionDeletion(engine.endpoint, session.sessionId)
+      await deleteSessionActor(engine.endpoint, session.sessionId)
+      await waitForSessionDeletion(engine.endpoint, session.sessionId)
     }
   } finally {
     await engine.release()
@@ -506,11 +506,8 @@ async function nukeSessions(
   try {
     await Promise.all(
       sessions.map(async session => {
-        await deleteLocalSessionActor(engine.endpoint, session.sessionId)
-        await waitForLocalSessionDeletion(
-          engine.endpoint,
-          session.sessionId
-        )
+        await deleteSessionActor(engine.endpoint, session.sessionId)
+        await waitForSessionDeletion(engine.endpoint, session.sessionId)
       })
     )
     await catalog.purge(sessions.map(session => session.sessionId))

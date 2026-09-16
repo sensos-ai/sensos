@@ -24,7 +24,6 @@
         "@ai-sdk/openai": "^4.0.66",
         "@ai-sdk/provider": "^4.0.15",
         "@ai-sdk/provider-utils": "^5.0.41",
-        "@durable-streams/client": "^0.2.7",
         "@inquirer/prompts": "^8.7.2",
         "@napi-rs/keyring": "2.1.0",
         "@sensos-ai/client": "workspace:*",
@@ -40,7 +39,10 @@
       "name": "@sensos-ai/client",
       "version": "0.1.0",
       "dependencies": {
+        "@durable-streams/client": "^0.2.7",
         "@sensos-ai/shared": "workspace:*",
+        "ai": "^7",
+        "rivetkit": "^2.3.12",
       },
     },
     "packages/shared": {

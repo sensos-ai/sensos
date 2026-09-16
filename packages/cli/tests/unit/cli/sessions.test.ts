@@ -5,10 +5,6 @@ import {
   pickLocalSession,
   pickLocalSessions,
 } from '@/cli/commands/sessions'
-import {
-  deleteLocalSessionActor,
-  waitForLocalSessionDeletion,
-} from '@/runtime/sessions'
 import type { SessionCatalog } from '@/storage/session-catalog'
 
 describe('saved session picker', () => {
@@ -110,55 +106,5 @@ describe('saved session picker', () => {
         { actorId: 'actor_2', sessionId: 'chat_two' },
       ])
     ).toBe('Are you sure you want to delete 2 sessions?')
-  })
-
-  test('waits until a destroyed session is absent', async () => {
-    let requests = 0
-    await waitForLocalSessionDeletion('http://localhost', 'chat_one', {
-      pollIntervalMs: 0,
-      fetcher: async () => {
-        requests += 1
-        return Response.json({
-          actors:
-            requests === 1
-              ? [{ actor_id: 'actor_1', key: 'chat_one' }]
-              : [
-                  {
-                    actor_id: 'actor_1',
-                    key: 'chat_one',
-                    destroy_ts: 1,
-                  },
-                ],
-        })
-      },
-    })
-
-    expect(requests).toBe(2)
-  })
-
-  test('deletes the matching actor through the Rivet control plane', async () => {
-    const requests: { url: string; method?: string }[] = []
-    await deleteLocalSessionActor(
-      'http://localhost',
-      'chat_one',
-      async (url, init) => {
-        requests.push({ url, method: init?.method })
-        if (init?.method === 'DELETE') return Response.json({})
-        return Response.json({
-          actors: [{ actor_id: 'actor_1', key: 'chat_one' }],
-        })
-      }
-    )
-
-    expect(requests).toEqual([
-      {
-        url: 'http://localhost/actors?name=session&namespace=default',
-        method: undefined,
-      },
-      {
-        url: 'http://localhost/actors/actor_1?namespace=default',
-        method: 'DELETE',
-      },
-    ])
   })
 })

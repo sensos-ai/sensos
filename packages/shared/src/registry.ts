@@ -20,21 +20,24 @@ type PublicAction<Args extends unknown[], Output> = (
 ) => Output | Promise<Output>
 
 export type SensosSessionEvents = {
-  frame: { readonly __type?: FrameEvent }
-  statusChanged: { readonly __type?: StatusChangedEvent }
+  frame: { readonly _eventType?: FrameEvent }
+  statusChanged: { readonly _eventType?: StatusChangedEvent }
   messagesChanged: {
-    readonly __type?: { messages: UIMessage[]; revision: number }
+    readonly _eventType?: {
+      messages: UIMessage[]
+      revision: number
+    }
   }
-  titleChanged: { readonly __type?: { title: string } }
-  deliveryRouted: { readonly __type?: DeliveryRoutedEvent }
+  titleChanged: { readonly _eventType?: { title: string } }
+  deliveryRouted: { readonly _eventType?: DeliveryRoutedEvent }
 }
 
 export type SensosSessionQueues = {
   runs: {
-    readonly __message?: RunCommand
-    readonly __complete?: RunCompletion
+    readonly _queueMessage?: RunCommand
+    readonly _queueComplete?: RunCompletion
   }
-  inbox: { readonly __message?: InboxMessage }
+  inbox: { readonly _queueMessage?: InboxMessage }
 }
 
 export type SensosSessionActions = {
@@ -64,8 +67,8 @@ export type SensosSessionActor = ActorDefinition<
   unknown,
   SessionInput,
   AnyDatabaseProvider,
-  any,
-  any,
+  SensosSessionEvents,
+  SensosSessionQueues,
   SensosSessionActions
 >
 

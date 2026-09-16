@@ -12,6 +12,9 @@
     "test": "bun test --pass-with-no-tests"
   },
   "dependencies": {
-    "@sensos-ai/shared": "workspace:*"
+    "@durable-streams/client": "^0.2.7",
+    "@sensos-ai/shared": "workspace:*",
+    "ai": "^7",
+    "rivetkit": "^2.3.12"
   }
 }

@@ -1,5 +1,8 @@
-import type { Client } from 'rivetkit/client'
-import { createClient } from 'rivetkit/client'
+import {
+  createSensosClient,
+  resolveSensosRemoteTarget,
+  type SensosClient,
+} from '@sensos-ai/client'
 import { acquireRuntime, type RuntimeLease } from './client'
 import { RUNTIME_ENDPOINT, RUNTIME_STREAMS_ENDPOINT } from './constants'
 
@@ -35,23 +38,10 @@ export type RivetEngineTarget =
     }
 
 export type RivetEngineConnection = {
-  client: Client<any>
+  client: SensosClient
   endpoint: string
   streamsEndpoint: string
   release(): Promise<void>
-}
-
-function endpoint(value: string, label: string): string {
-  let parsed: URL
-  try {
-    parsed = new URL(value)
-  } catch {
-    throw new Error(`${label} must be an absolute HTTP(S) URL`)
-  }
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw new Error(`${label} must use HTTP or HTTPS`)
-  }
-  return parsed.toString().replace(/\/$/, '')
 }
 
 export function resolveRivetEngineTarget(
@@ -68,26 +58,18 @@ export function resolveRivetEngineTarget(
   const remoteStreamsEndpoint =
     env[STREAMS_URL_ENV]?.trim() || BUILT_STREAMS_ENDPOINT
 
-  if (!remoteEndpoint && !remoteStreamsEndpoint) {
-    throw new Error(
-      `Remote engine is not configured. Set ${REGISTRY_ENDPOINT_ENV} and ${STREAMS_URL_ENV}, or pass --local-engine.`
-    )
-  }
-  if (!remoteEndpoint || !remoteStreamsEndpoint) {
-    throw new Error(
-      `Remote engine mode requires both ${REGISTRY_ENDPOINT_ENV} and ${STREAMS_URL_ENV}`
-    )
-  }
-
+  const remote = resolveSensosRemoteTarget(
+    {
+      endpoint: remoteEndpoint,
+      streamsEndpoint: remoteStreamsEndpoint,
+      token: options.token,
+      namespace: options.namespace,
+    },
+    {}
+  )
   return {
     kind: 'remote',
-    endpoint: endpoint(remoteEndpoint, 'Remote engine endpoint'),
-    streamsEndpoint: endpoint(
-      remoteStreamsEndpoint,
-      'Remote streams endpoint'
-    ),
-    ...(options.token ? { token: options.token } : {}),
-    ...(options.namespace ? { namespace: options.namespace } : {}),
+    ...remote,
   }
 }
 
@@ -111,8 +93,9 @@ export async function connectRivetEngine(
     target.kind === 'local'
       ? RUNTIME_STREAMS_ENDPOINT
       : target.streamsEndpoint
-  const client = createClient<any>({
+  const client = createSensosClient({
     endpoint: endpointValue,
+    streamsEndpoint,
     ...(target.kind === 'remote' && target.token
       ? { token: target.token }
       : {}),
@@ -126,6 +109,7 @@ export async function connectRivetEngine(
     endpoint: endpointValue,
     streamsEndpoint,
     async release() {
+      await client.dispose()
       await lease?.release()
     },
   }
