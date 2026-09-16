@@ -1,4 +1,5 @@
 export * from './core'
 export * from './models'
+export type * from './registry'
 export * from './session'
 export * from './streams'

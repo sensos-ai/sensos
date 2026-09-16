@@ -1,11 +1,17 @@
 import type { ChatStatus, UIMessage, UIMessageChunk } from 'ai'
 import { z } from 'zod'
 import { protocolVersionSchema } from './core'
-import { modelRefSchema, type ModelRef } from './models'
+import {
+  harnessFeaturesSchema,
+  modelRefSchema,
+  type HarnessFeatures,
+  type ModelRef,
+} from './models'
 
 export const runStatusSchema = z.enum([
   'queued',
   'running',
+  'cancel_requested',
   'completed',
   'failed',
   'cancelled',
@@ -23,6 +29,7 @@ export const sessionInputSchema = z.object({
   model: modelRefSchema.optional(),
   instructions: z.string().optional(),
   initialMessages: z.array(z.custom<UIMessage>()).optional(),
+  features: harnessFeaturesSchema.partial().optional(),
 })
 
 export type SessionInput = z.input<typeof sessionInputSchema>
@@ -31,6 +38,14 @@ export type RunCommand = {
   idempotencyId: string
   model?: ModelRef
   message: UIMessage
+}
+
+export type SessionRun = {
+  id: string
+  idempotencyId: string
+  status: RunStatus
+  model?: ModelRef
+  error?: string
 }
 
 export type InboxMessage = {
@@ -59,6 +74,7 @@ export type SessionSnapshot = {
   status: ChatStatus
   activeRunId?: string
   model?: ModelRef
+  features: HarnessFeatures
   title?: string
   error?: string
 }
@@ -71,12 +87,21 @@ export type SessionActions = {
   deliver: { input: InboxMessage; output: DeliveryRoutedEvent }
   deleteSession: { input: undefined; output: undefined }
   getSession: { input: undefined; output: SessionSnapshot }
-  setModel: { input: ModelRef; output: undefined }
-  getRun: { input: { runId: string }; output: unknown }
+  setModel: { input: ModelRef; output: { model: ModelRef } }
+  setFeatures: {
+    input: HarnessFeatures
+    output: { features: HarnessFeatures }
+  }
+  getRun: { input: { runId: string }; output: SessionRun | undefined }
   streamSnapshot: {
     input: { runId: string; afterSeq?: number }
-    output: FrameEvent[]
+    output: { run: SessionRun | undefined; frames: FrameEvent[] }
   }
+}
+
+export type SessionQueues = {
+  runs: { input: RunCommand; output: RunCompletion }
+  inbox: { input: InboxMessage; output: never }
 }
 
 export type FrameEvent = {

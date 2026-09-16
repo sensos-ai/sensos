@@ -1,5 +1,5 @@
 import type { GatewayModelId } from 'ai'
-import { z } from 'zod'
+import { modelRefSchema } from '@sensos-ai/shared/models'
 import type { ModelIdOf } from './harness-provider'
 import type { HarnessProviderRegistry, ModelProvider } from './registry'
 import type { CodexModelId } from './openai'
@@ -11,20 +11,7 @@ export type ModelRef = {
   }
 }[ModelProvider]
 
-export const modelRefSchema = z.discriminatedUnion('provider', [
-  z.object({
-    provider: z.literal('gateway'),
-    modelId: z.custom<GatewayModelId>(
-      value => typeof value === 'string' && value.length > 0
-    ),
-  }),
-  z.object({
-    provider: z.literal('codex'),
-    modelId: z.custom<CodexModelId>(
-      value => typeof value === 'string' && value.length > 0
-    ),
-  }),
-])
+export { modelRefSchema }
 
 export function modelRefForProvider<ProviderId extends ModelProvider>(
   provider: ProviderId,

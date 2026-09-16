@@ -1,12 +1,15 @@
-import { z } from 'zod'
+import {
+  harnessFeaturesSchema,
+  type HarnessFeatureOverrides,
+  type HarnessFeatures,
+} from '@sensos-ai/shared/models'
 import { testModelEnabled } from './providers/test-model'
 
-export const harnessFeaturesSchema = z.object({
-  useMockModel: z.boolean(),
-})
-
-export type HarnessFeatures = z.output<typeof harnessFeaturesSchema>
-export type HarnessFeatureOverrides = Partial<HarnessFeatures>
+export {
+  harnessFeaturesSchema,
+  type HarnessFeatureOverrides,
+  type HarnessFeatures,
+}
 
 /** Resolves every feature source once into a complete, transportable value. */
 export function resolveHarnessFeatures(
