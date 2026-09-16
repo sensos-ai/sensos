@@ -8,16 +8,23 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
+    "build:packages": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
     "test": {
       "dependsOn": ["build"]
-    },
-    "clean": {
-      "cache": false
     },
     "lint": {},
     "format": {
       "cache": false
     },
-    "typecheck": {}
+    "typecheck": {},
+    "clean": {
+      "cache": false
+    },
+    "//#clean": {
+      "cache": false
+    }
   }
 }
