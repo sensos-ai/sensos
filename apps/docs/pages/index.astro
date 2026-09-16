@@ -1,0 +1,69 @@
+---
+import PageLayout from 'blume/components/layout/PageLayout.astro'
+import data from 'blume:data'
+
+const { config } = data
+---
+
+<PageLayout
+  site={{ title: config.title, description: config.description }}
+  logo={config.logo}
+  banner={config.banner}
+  analytics={config.analytics}
+  navigation={data.navigation}
+  favicon={config.favicon}
+  fontCssVars={data.fontCssVars}
+  themeMode={config.theme.mode}
+  searchEnabled={config.search.enabled}
+  siteUrl={config.site}
+  ogEnabled={config.og.enabled}
+  structuredDataEnabled={config.structuredData}
+  page={{
+    title: 'Sensos Labs',
+    description: 'Open source experiments in AI engineering',
+  }}
+>
+  <section class="hero">
+    <div>
+      <h1>Sensos Labs</h1>
+      <p>Open source experiments in AI engineering</p>
+      <a href="/docs">Read Docs <span aria-hidden="true">→</span></a>
+    </div>
+  </section>
+</PageLayout>
+
+<style>
+  .hero {
+    display: grid;
+    min-height: calc(100svh - 4rem);
+    place-items: center;
+    padding: 3rem 1.5rem;
+    text-align: center;
+  }
+
+  .hero > div {
+    display: grid;
+    justify-items: center;
+    gap: 1.25rem;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  p {
+    margin: 0;
+    color: color-mix(in srgb, currentColor 70%, transparent);
+    font-size: clamp(1rem, 2vw, 1.25rem);
+  }
+
+  a {
+    margin-top: 0.5rem;
+    color: inherit;
+    font-weight: 600;
+    text-underline-offset: 0.25em;
+  }
+</style>
