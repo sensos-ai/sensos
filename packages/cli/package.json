@@ -17,8 +17,6 @@
     "test:stress": "bun run test --randomize --rerun-each=20",
     "test:coverage": "bun run test --coverage --coverage-reporter=text --coverage-reporter=lcov",
     "test:keyring": "bun run scripts/smoke-keyring.ts",
-    "link": "bun run build && bun link",
-    "unlink": "bun unlink",
     "clean": "git clean -xdf node_modules dist \"*.tsbuildinfo\""
   },
   "dependencies": {
