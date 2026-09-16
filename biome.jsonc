@@ -49,6 +49,11 @@
       "lineWidth": 75
     }
   },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
   "assist": {
     "actions": {
       "source": {

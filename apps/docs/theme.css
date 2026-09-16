@@ -1,0 +1,8 @@
+:root {
+  --blume-accent: var(--color-indigo-300);
+  --blume-radius: var(--radius-2xl);
+}
+
+:root[data-theme="dark"] {
+  --blume-accent: var(--color-indigo-400);
+}
