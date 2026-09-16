@@ -1,5 +1,7 @@
 import {
-  SENSOS_PROTOCOL_VERSION,
+  SENSOS_PROTOCOL_VERSIONS,
+  protocolDiscoverySchema,
+  type SensosProtocolVersion,
   type SensosRegistry,
 } from '@sensos-ai/shared'
 import { createClient, type Client } from 'rivetkit/client'
@@ -17,12 +19,17 @@ export type SensosSessionConnection = ReturnType<
   SensosSessionHandle['connect']
 >
 
+export type SensosFetch = (
+  input: string | URL | Request,
+  init?: RequestInit
+) => Promise<Response>
+
 export type SensosClientOptions = {
   endpoint: string
   streamsEndpoint: string
   token?: string
   namespace?: string
-  protocolVersion?: number
+  fetch?: SensosFetch
 }
 
 export type SensosRemoteTarget = {
@@ -89,10 +96,12 @@ export function resolveSensosRemoteTarget(
 export type SensosClient = {
   readonly endpoint: string
   readonly streamsEndpoint: string
-  readonly protocolVersion: typeof SENSOS_PROTOCOL_VERSION
+  readonly supportedProtocolVersions: typeof SENSOS_PROTOCOL_VERSIONS
   readonly rivet: SensosRivetClient
   readonly session: SensosRivetClient['session']
   readonly readRunStream: ReturnType<typeof createRunStreamReader>
+  negotiateProtocol(): Promise<SensosProtocolVersion>
+  assertProtocolVersion(version: number): SensosProtocolVersion
   dispose(): Promise<void>
 }
 
@@ -107,15 +116,7 @@ export function createSensosClient(
     options.streamsEndpoint,
     'Sensos streams endpoint'
   )
-  if (
-    options.protocolVersion !== undefined &&
-    options.protocolVersion !== SENSOS_PROTOCOL_VERSION
-  ) {
-    throw new Error(
-      `Sensos protocol mismatch: client ${SENSOS_PROTOCOL_VERSION}, engine ${options.protocolVersion}`
-    )
-  }
-
+  const fetcher = options.fetch ?? globalThis.fetch
   const rivet = createClient<SensosRegistry>({
     endpoint,
     ...(options.token ? { token: options.token } : {}),
@@ -125,10 +126,52 @@ export function createSensosClient(
   return {
     endpoint,
     streamsEndpoint,
-    protocolVersion: SENSOS_PROTOCOL_VERSION,
+    supportedProtocolVersions: SENSOS_PROTOCOL_VERSIONS,
     rivet,
     session: rivet.session,
     readRunStream: createRunStreamReader(streamsEndpoint),
+    async negotiateProtocol() {
+      const discoveryUrl = new URL(endpoint)
+      discoveryUrl.pathname = discoveryUrl.pathname.endsWith('/api/rivet')
+        ? `${discoveryUrl.pathname.slice(0, -'/api/rivet'.length)}/api/protocol`
+        : '/api/protocol'
+      discoveryUrl.search = ''
+      discoveryUrl.hash = ''
+      const response = await fetcher(discoveryUrl, {
+        headers: options.token
+          ? { authorization: `Bearer ${options.token}` }
+          : undefined,
+      })
+      if (!response.ok) {
+        throw new Error(
+          `Sensos protocol discovery failed with HTTP ${response.status}`
+        )
+      }
+      const discovery = protocolDiscoverySchema.parse(
+        await response.json()
+      )
+      const selected = SENSOS_PROTOCOL_VERSIONS.find(version =>
+        discovery.supportedProtocolVersions.includes(version)
+      )
+      if (selected === undefined) {
+        throw new Error(
+          `Sensos protocol mismatch: client supports ${SENSOS_PROTOCOL_VERSIONS.join(', ')}; engine supports ${discovery.supportedProtocolVersions.join(', ')}`
+        )
+      }
+      return selected
+    },
+    assertProtocolVersion(version) {
+      if (
+        !SENSOS_PROTOCOL_VERSIONS.includes(
+          version as SensosProtocolVersion
+        )
+      ) {
+        throw new Error(
+          `Sensos protocol mismatch: engine selected ${version}; client supports ${SENSOS_PROTOCOL_VERSIONS.join(', ')}`
+        )
+      }
+      return version as SensosProtocolVersion
+    },
     dispose: () => rivet.dispose(),
   }
 }

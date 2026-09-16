@@ -1,4 +1,4 @@
-import { SENSOS_PROTOCOL_VERSION, SensosRegistry } from "@sensos-ai/shared";
+import { SENSOS_PROTOCOL_VERSIONS, SensosProtocolVersion, SensosRegistry } from "@sensos-ai/shared";
 import { Client } from "rivetkit/client";
 import { Offset } from "@durable-streams/client";
 import { UIMessageChunk } from "ai";
@@ -28,12 +28,13 @@ declare const STREAMS_URL_ENV = "SENSOS_STREAMS_URL";
 type SensosRivetClient = Client<SensosRegistry>;
 type SensosSessionHandle = ReturnType<SensosRivetClient["session"]["getOrCreate"]>;
 type SensosSessionConnection = ReturnType<SensosSessionHandle["connect"]>;
+type SensosFetch = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 type SensosClientOptions = {
 	endpoint: string;
 	streamsEndpoint: string;
 	token?: string;
 	namespace?: string;
-	protocolVersion?: number;
+	fetch?: SensosFetch;
 };
 type SensosRemoteTarget = {
 	endpoint: string;
@@ -51,10 +52,12 @@ declare function resolveSensosRemoteTarget(options?: {
 type SensosClient = {
 	readonly endpoint: string;
 	readonly streamsEndpoint: string;
-	readonly protocolVersion: typeof SENSOS_PROTOCOL_VERSION;
+	readonly supportedProtocolVersions: typeof SENSOS_PROTOCOL_VERSIONS;
 	readonly rivet: SensosRivetClient;
 	readonly session: SensosRivetClient["session"];
 	readonly readRunStream: ReturnType<typeof createRunStreamReader>;
+	negotiateProtocol(): Promise<SensosProtocolVersion>;
+	assertProtocolVersion(version: number): SensosProtocolVersion;
 	dispose(): Promise<void>;
 };
 declare function createSensosClient(options: SensosClientOptions): SensosClient;
@@ -117,4 +120,4 @@ declare class DeferredSessionChatTransport<UI_MESSAGE extends UIMessage = UIMess
 }
 import { sessionActorKey, SessionActorKey } from "@sensos-ai/shared";
 declare const SENSOS_CLIENT_PACKAGE_VERSION: "0.1.0";
-export { DeferredSessionChatTransport, REGISTRY_ENDPOINT_ENV, RunStreamItem, RunStreamReader, SENSOS_CLIENT_PACKAGE_VERSION, STREAMS_URL_ENV, SensosClient, SensosClientOptions, SensosRemoteTarget, SensosRivetClient, SensosSessionConnection, SensosSessionHandle, SessionActorKey, SessionChatTransport, SessionConnection, SessionSnapshot, StreamTimingEvent, appendRunStreamChunk, closeRunStream, configureSensosClientLogger, createRunStreamReader, createSensosClient, deleteSessionActor, ensureRunStream, getSessionSnapshot, readRunStream2 as readRunStream, resolveSensosRemoteTarget, runStreamUrl, sessionActorKey, waitForSessionDeletion };
+export { DeferredSessionChatTransport, REGISTRY_ENDPOINT_ENV, RunStreamItem, RunStreamReader, SENSOS_CLIENT_PACKAGE_VERSION, STREAMS_URL_ENV, SensosClient, SensosClientOptions, SensosFetch, SensosRemoteTarget, SensosRivetClient, SensosSessionConnection, SensosSessionHandle, SessionActorKey, SessionChatTransport, SessionConnection, SessionSnapshot, StreamTimingEvent, appendRunStreamChunk, closeRunStream, configureSensosClientLogger, createRunStreamReader, createSensosClient, deleteSessionActor, ensureRunStream, getSessionSnapshot, readRunStream2 as readRunStream, resolveSensosRemoteTarget, runStreamUrl, sessionActorKey, waitForSessionDeletion };

@@ -1,7 +1,17 @@
 // packages/shared/src/core.ts
 import { z } from "zod";
-var SENSOS_PROTOCOL_VERSION = 1;
-var protocolVersionSchema = z.literal(SENSOS_PROTOCOL_VERSION);
+var SENSOS_PROTOCOL_VERSIONS = [1];
+var LATEST_SENSOS_PROTOCOL_VERSION = SENSOS_PROTOCOL_VERSIONS[0];
+var protocolVersionSchema = z.number().int().positive();
+var supportedProtocolVersionsSchema = z.array(protocolVersionSchema).min(1);
+var protocolDiscoverySchema = z.object({
+  protocolVersion: protocolVersionSchema,
+  supportedProtocolVersions: supportedProtocolVersionsSchema
+});
+function negotiateProtocolVersion(requested) {
+  const requestedVersions = new Set(requested);
+  return SENSOS_PROTOCOL_VERSIONS.find((version) => requestedVersions.has(version));
+}
 var sessionActorKeySchema = z.tuple([
   z.string().min(1),
   z.string().min(1),
@@ -53,7 +63,7 @@ var runStatusSchema = z3.enum([
   "interrupted"
 ]);
 var sessionInputSchema = z3.object({
-  protocolVersion: protocolVersionSchema,
+  supportedProtocolVersions: supportedProtocolVersionsSchema,
   sessionId: z3.string().min(1),
   catalogRevision: z3.number().int().nonnegative().optional(),
   cwd: z3.string().min(1),
@@ -67,10 +77,13 @@ import { z as z4 } from "zod";
 var runStreamCursorSchema = z4.string().min(1);
 var runStreamName = (runId) => `sensos/runs/${encodeURIComponent(runId)}`;
 export {
-  SENSOS_PROTOCOL_VERSION,
+  LATEST_SENSOS_PROTOCOL_VERSION,
+  SENSOS_PROTOCOL_VERSIONS,
   harnessFeaturesSchema,
   modelProviderSchema,
   modelRefSchema,
+  negotiateProtocolVersion,
+  protocolDiscoverySchema,
   protocolErrorCodeSchema,
   protocolErrorSchema,
   protocolVersionSchema,
@@ -79,5 +92,6 @@ export {
   runStreamName,
   sessionActorKey,
   sessionActorKeySchema,
-  sessionInputSchema
+  sessionInputSchema,
+  supportedProtocolVersionsSchema
 };

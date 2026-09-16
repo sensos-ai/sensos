@@ -1,6 +1,15 @@
 import { z } from "zod";
-declare const SENSOS_PROTOCOL_VERSION: 1;
-declare const protocolVersionSchema: z.ZodLiteral<1>;
+declare const SENSOS_PROTOCOL_VERSIONS: readonly [1];
+declare const LATEST_SENSOS_PROTOCOL_VERSION: 1;
+type SensosProtocolVersion = (typeof SENSOS_PROTOCOL_VERSIONS)[number];
+declare const protocolVersionSchema: z.ZodNumber;
+declare const supportedProtocolVersionsSchema: z.ZodArray<z.ZodNumber>;
+declare const protocolDiscoverySchema: z.ZodObject<{
+	protocolVersion: z.ZodNumber;
+	supportedProtocolVersions: z.ZodArray<z.ZodNumber>;
+}, z.core.$strip>;
+type ProtocolDiscovery = z.infer<typeof protocolDiscoverySchema>;
+declare function negotiateProtocolVersion(requested: readonly number[]): SensosProtocolVersion | undefined;
 declare const sessionActorKeySchema: z.ZodTuple<[z.ZodString, z.ZodString, z.ZodString], null>;
 type SessionActorKey = z.infer<typeof sessionActorKeySchema>;
 declare function sessionActorKey(input: {
@@ -73,7 +82,7 @@ declare const runStatusSchema: z3.ZodEnum<{
 type RunStatus = z3.infer<typeof runStatusSchema>;
 type SessionStatus = "idle" | RunStatus;
 declare const sessionInputSchema: z3.ZodObject<{
-	protocolVersion: z3.ZodLiteral<1>;
+	supportedProtocolVersions: z3.ZodArray<z3.ZodNumber>;
 	sessionId: z3.ZodString;
 	catalogRevision: z3.ZodOptional<z3.ZodNumber>;
 	cwd: z3.ZodString;
@@ -126,6 +135,7 @@ type RunCompletion = {
 	reason?: "session_busy";
 };
 type SessionSnapshot = {
+	protocolVersion: number;
 	messages: UIMessage[];
 	revision: number;
 	runStatus: SessionStatus;
@@ -306,4 +316,4 @@ type RunStreamChunk = {
 	chunk: UIMessageChunk2;
 	cursor?: RunStreamCursor;
 };
-export { DeliveryRoutedEvent, FrameEvent, HarnessFeatureOverrides, HarnessFeatures, InboxMessage, ModelProvider, ModelRef, ProtocolError, RunCommand, RunCompletion, RunStatus, RunStreamChunk, RunStreamCursor, SENSOS_PROTOCOL_VERSION, SensosRegistry, SensosRegistryActors, SensosSessionActions, SensosSessionActor, SensosSessionEvents, SensosSessionQueues, SessionActions, SessionActorKey, SessionConnectionStatus, SessionEvents, SessionInput, SessionQueues, SessionRun, SessionSnapshot, SessionStatus, StatusChangedEvent, harnessFeaturesSchema, modelProviderSchema, modelRefSchema, protocolErrorCodeSchema, protocolErrorSchema, protocolVersionSchema, runStatusSchema, runStreamCursorSchema, runStreamName, sessionActorKey, sessionActorKeySchema, sessionInputSchema };
+export { DeliveryRoutedEvent, FrameEvent, HarnessFeatureOverrides, HarnessFeatures, InboxMessage, LATEST_SENSOS_PROTOCOL_VERSION, ModelProvider, ModelRef, ProtocolDiscovery, ProtocolError, RunCommand, RunCompletion, RunStatus, RunStreamChunk, RunStreamCursor, SENSOS_PROTOCOL_VERSIONS, SensosProtocolVersion, SensosRegistry, SensosRegistryActors, SensosSessionActions, SensosSessionActor, SensosSessionEvents, SensosSessionQueues, SessionActions, SessionActorKey, SessionConnectionStatus, SessionEvents, SessionInput, SessionQueues, SessionRun, SessionSnapshot, SessionStatus, StatusChangedEvent, harnessFeaturesSchema, modelProviderSchema, modelRefSchema, negotiateProtocolVersion, protocolDiscoverySchema, protocolErrorCodeSchema, protocolErrorSchema, protocolVersionSchema, runStatusSchema, runStreamCursorSchema, runStreamName, sessionActorKey, sessionActorKeySchema, sessionInputSchema, supportedProtocolVersionsSchema };

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import {
-  SENSOS_PROTOCOL_VERSION,
+  LATEST_SENSOS_PROTOCOL_VERSION,
+  SENSOS_PROTOCOL_VERSIONS,
   harnessFeaturesSchema,
   modelRefSchema,
   protocolErrorSchema,
@@ -19,7 +20,8 @@ import type {
 
 describe('public wire contract', () => {
   test('parses every runtime schema', () => {
-    expect(SENSOS_PROTOCOL_VERSION).toBe(1)
+    expect(LATEST_SENSOS_PROTOCOL_VERSION).toBe(1)
+    expect(SENSOS_PROTOCOL_VERSIONS).toEqual([1])
     expect(
       sessionActorKey({ tenantId: 't', userId: 'u', sessionId: 's' })
     ).toEqual(['t', 'u', 's'])
@@ -32,7 +34,7 @@ describe('public wire contract', () => {
     expect(runStatusSchema.options).toContain('cancel_requested')
     expect(
       sessionInputSchema.parse({
-        protocolVersion: 1,
+        supportedProtocolVersions: [1],
         sessionId: 's',
         cwd: '/tmp',
         features: { useMockModel: true },

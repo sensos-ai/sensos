@@ -5,7 +5,7 @@ import {
   DeferredSessionChatTransport,
   type SessionConnection,
 } from '@sensos-ai/client'
-import { SENSOS_PROTOCOL_VERSION } from '@sensos-ai/shared'
+import { SENSOS_PROTOCOL_VERSIONS } from '@sensos-ai/shared'
 import {
   resolveHarnessFeatures,
   type HarnessFeatures,
@@ -210,7 +210,7 @@ async function runChatSession(
       const client = engineConnection.client
       const handle = client.session.getOrCreate([sessionId], {
         createWithInput: {
-          protocolVersion: SENSOS_PROTOCOL_VERSION,
+          supportedProtocolVersions: [...SENSOS_PROTOCOL_VERSIONS],
           sessionId,
           catalogRevision: catalogSession.revision,
           cwd: options.cwd,
@@ -222,12 +222,13 @@ async function runChatSession(
         clientId,
       })
       connection = nextConnection
+      const snapshot = await nextConnection.getSession()
+      client.assertProtocolVersion(snapshot.protocolVersion)
       await nextConnection.setFeatures(options.features)
       recordTiming('client.session.connected', {
         sessionId,
         elapsedMs: Date.now() - startedAt,
       })
-      const snapshot = await nextConnection.getSession()
       recordTiming('client.session.hydrated', {
         sessionId,
         elapsedMs: Date.now() - startedAt,

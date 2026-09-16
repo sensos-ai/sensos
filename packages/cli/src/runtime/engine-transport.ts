@@ -103,6 +103,7 @@ export async function connectRivetEngine(
       ? { namespace: target.namespace }
       : {}),
   })
+  if (target.kind === 'remote') await client.negotiateProtocol()
 
   return {
     client,

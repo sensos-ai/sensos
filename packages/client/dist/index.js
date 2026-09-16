@@ -1,7 +1,13 @@
 // packages/shared/src/core.ts
 import { z } from "zod";
-var SENSOS_PROTOCOL_VERSION = 1;
-var protocolVersionSchema = z.literal(SENSOS_PROTOCOL_VERSION);
+var SENSOS_PROTOCOL_VERSIONS = [1];
+var LATEST_SENSOS_PROTOCOL_VERSION = SENSOS_PROTOCOL_VERSIONS[0];
+var protocolVersionSchema = z.number().int().positive();
+var supportedProtocolVersionsSchema = z.array(protocolVersionSchema).min(1);
+var protocolDiscoverySchema = z.object({
+  protocolVersion: protocolVersionSchema,
+  supportedProtocolVersions: supportedProtocolVersionsSchema
+});
 var sessionActorKeySchema = z.tuple([
   z.string().min(1),
   z.string().min(1),
@@ -53,7 +59,7 @@ var runStatusSchema = z3.enum([
   "interrupted"
 ]);
 var sessionInputSchema = z3.object({
-  protocolVersion: protocolVersionSchema,
+  supportedProtocolVersions: supportedProtocolVersionsSchema,
   sessionId: z3.string().min(1),
   catalogRevision: z3.number().int().nonnegative().optional(),
   cwd: z3.string().min(1),
@@ -221,9 +227,7 @@ function resolveSensosRemoteTarget(options = {}, env = process.env) {
 function createSensosClient(options) {
   const endpoint = normalizeHttpEndpoint(options.endpoint, "Sensos engine endpoint");
   const streamsEndpoint = normalizeHttpEndpoint(options.streamsEndpoint, "Sensos streams endpoint");
-  if (options.protocolVersion !== undefined && options.protocolVersion !== SENSOS_PROTOCOL_VERSION) {
-    throw new Error(`Sensos protocol mismatch: client ${SENSOS_PROTOCOL_VERSION}, engine ${options.protocolVersion}`);
-  }
+  const fetcher = options.fetch ?? globalThis.fetch;
   const rivet = createClient({
     endpoint,
     ...options.token ? { token: options.token } : {},
@@ -232,10 +236,34 @@ function createSensosClient(options) {
   return {
     endpoint,
     streamsEndpoint,
-    protocolVersion: SENSOS_PROTOCOL_VERSION,
+    supportedProtocolVersions: SENSOS_PROTOCOL_VERSIONS,
     rivet,
     session: rivet.session,
     readRunStream: createRunStreamReader(streamsEndpoint),
+    async negotiateProtocol() {
+      const discoveryUrl = new URL(endpoint);
+      discoveryUrl.pathname = discoveryUrl.pathname.endsWith("/api/rivet") ? `${discoveryUrl.pathname.slice(0, -"/api/rivet".length)}/api/protocol` : "/api/protocol";
+      discoveryUrl.search = "";
+      discoveryUrl.hash = "";
+      const response = await fetcher(discoveryUrl, {
+        headers: options.token ? { authorization: `Bearer ${options.token}` } : undefined
+      });
+      if (!response.ok) {
+        throw new Error(`Sensos protocol discovery failed with HTTP ${response.status}`);
+      }
+      const discovery = protocolDiscoverySchema.parse(await response.json());
+      const selected = SENSOS_PROTOCOL_VERSIONS.find((version) => discovery.supportedProtocolVersions.includes(version));
+      if (selected === undefined) {
+        throw new Error(`Sensos protocol mismatch: client supports ${SENSOS_PROTOCOL_VERSIONS.join(", ")}; engine supports ${discovery.supportedProtocolVersions.join(", ")}`);
+      }
+      return selected;
+    },
+    assertProtocolVersion(version) {
+      if (!SENSOS_PROTOCOL_VERSIONS.includes(version)) {
+        throw new Error(`Sensos protocol mismatch: engine selected ${version}; client supports ${SENSOS_PROTOCOL_VERSIONS.join(", ")}`);
+      }
+      return version;
+    },
     dispose: () => rivet.dispose()
   };
 }
