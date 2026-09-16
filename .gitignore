@@ -1,0 +1,33 @@
+node_modules/
+*.log
+/log.txt
+.DS_Store
+dist/
+coverage/
+tests/e2e/artifacts/
+
+# turborepo / next
+.turbo/
+.next/
+out/
+
+# env
+.env
+.env.*
+!.env.example
+
+# tsc incremental
+*.tsbuildinfo
+
+# misc
+archive
+.vscode
+.vercel
+
+# ai
+CLAUDE.local.md
+.claude/worktrees/
+.agents/worktrees/
+.agents/plans
+.claude/plans/
+.claude/settings.local.json

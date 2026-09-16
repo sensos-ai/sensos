@@ -1,0 +1,54 @@
+{
+  "name": "sensos",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.2",
+  "bin": {
+    "sensos": "./dist/sensos",
+    "sensos-dev": "./src/cli/bootstrap.ts"
+  },
+  "scripts": {
+    "build": "bun run scripts/build-sensos.ts",
+    "test": "bun run test:unit",
+    "test:unit": "bun test --no-orphans --parallel tests/unit",
+    "test:e2e": "bun run build && bun run test:e2e:run",
+    "test:e2e:run": "bun test --no-orphans tests/e2e",
+    "test:stress": "bun run test:unit --randomize --rerun-each=20",
+    "test:coverage": "bun run test:unit --coverage --coverage-reporter=text --coverage-reporter=lcov",
+    "test:keyring": "bun run scripts/smoke-keyring.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check --write",
+    "lint:check": "biome check",
+    "format": "biome format --write",
+    "turbo:build": "turbo run build",
+    "turbo:lint": "turbo run lint:check",
+    "turbo:typecheck": "turbo run typecheck",
+    "turbo:test": "turbo run test:unit",
+    "turbo:check": "turbo run lint:check typecheck test:unit",
+    "global:link": "bun run build && bun link",
+    "global:unlink": "bun unlink",
+    "clean": "git clean -xdf node_modules dist \"*.tsbuildinfo\""
+  },
+  "dependencies": {
+    "@ai-sdk/gateway": "^4.0.80",
+    "@ai-sdk/openai": "^4.0.66",
+    "@ai-sdk/provider": "^4.0.15",
+    "@ai-sdk/provider-utils": "^5.0.41",
+    "@durable-streams/client": "^0.2.7",
+    "@inquirer/prompts": "^8.7.2",
+    "@napi-rs/keyring": "2.1.0",
+    "ai": "^7",
+    "drizzle-orm": "0.45.2",
+    "nanoevents": "^10.0.0",
+    "rivetkit": "^2.3.12",
+    "zod": "^4"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.13",
+    "@types/bun": "^1.4.2",
+    "@types/node": "^26.1.1",
+    "turbo": "^2.10.13",
+    "typescript": "^7.0.2"
+  }
+}

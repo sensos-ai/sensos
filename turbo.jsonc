@@ -1,0 +1,32 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "cacheDir": ".turbo/cache",
+  "cacheMaxAge": "30d",
+  "cacheMaxSize": "20GB",
+  "globalEnv": [
+    "SENSOS_ENGINE_BUILD_ID",
+    "SENSOS_REGISTRY_ENDPOINT",
+    "SENSOS_STREAMS_URL"
+  ],
+  "tasks": {
+    "build": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.env"],
+      "outputs": ["dist/**"]
+    },
+    "test:unit": {},
+    "test:e2e:run": {
+      "dependsOn": ["build"]
+    },
+    "clean": {
+      "cache": false
+    },
+    "lint": {
+      "cache": false
+    },
+    "lint:check": {},
+    "format": {
+      "cache": false
+    },
+    "typecheck": {}
+  }
+}
