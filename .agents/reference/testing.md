@@ -36,6 +36,14 @@ bun run turbo:build
 bun test --no-orphans tests/e2e/cli/auth.test.ts
 ```
 
+Run the cross-repository remote-engine E2E against an explicit backend
+checkout. The runner builds the backend engine and CLI before starting the
+backend-owned engine, services, and public gateway:
+
+```sh
+SENSOS_E2E_BACKEND_ROOT=/absolute/path/to/backend bun run test:e2e:remote
+```
+
 Run static validation:
 
 ```sh

@@ -18,8 +18,18 @@ import {
 } from './scripted-gateway'
 import { waitForValue } from './wait'
 
-const executable = resolve('dist/sensos')
-const engineExecutable = resolve('dist/sensos-engine')
+const cliPackageRoot = resolve(import.meta.dir, '../..')
+const executable = join(cliPackageRoot, 'dist', 'sensos')
+
+function resolveBackendRoot(): string {
+  const configured = process.env.SENSOS_E2E_BACKEND_ROOT?.trim()
+  if (!configured) {
+    throw new Error(
+      'Remote engine E2E requires SENSOS_E2E_BACKEND_ROOT to point to the sensos backend checkout'
+    )
+  }
+  return resolve(configured)
+}
 
 async function reserveRuntimePort(): Promise<number> {
   for (let attempt = 0; attempt < 50; attempt++) {
@@ -199,6 +209,13 @@ export async function startCliE2E(
   let remoteRuntime: Bun.Subprocess | undefined
   let publicGateway: Bun.Subprocess | undefined
   if (options.remoteEngine) {
+    const backendRoot = resolveBackendRoot()
+    const engineExecutable = join(backendRoot, 'dist', 'sensos-engine')
+    if (!(await Bun.file(engineExecutable).exists())) {
+      throw new Error(
+        `Backend engine is missing at ${engineExecutable}; run bun run turbo:build in ${backendRoot}`
+      )
+    }
     remoteRuntime = Bun.spawn(
       [
         engineExecutable,
@@ -230,6 +247,7 @@ export async function startCliE2E(
       { description: 'external Rivet runtime', timeoutMs: 20_000 }
     )
     publicGateway = Bun.spawn(['bun', 'run', 'src/server.ts'], {
+      cwd: backendRoot,
       env: { ...env, PORT: String(port + 20) },
       stdin: 'ignore',
       stdout: 'ignore',

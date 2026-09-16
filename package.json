@@ -4,12 +4,15 @@
   "private": true,
   "type": "module",
   "packageManager": "bun@1.4.2",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "test:e2e:remote": "bun run scripts/test-remote-e2e.ts",
     "check": "turbo run lint typecheck test build",
     "format": "turbo run format",
     "clean": "turbo run clean",
