@@ -13,6 +13,9 @@
     "check": "turbo run lint typecheck test build",
     "format": "turbo run format",
     "clean": "turbo run clean",
+    "registry:build": "bunup --filter shared,client",
+    "registry:validate": "bunx --bun shadcn@latest registry validate registry.json",
+    "registry:validate:live": "bunx --bun shadcn@latest registry validate sensos-ai/sensos",
     "turbo:build": "turbo run build",
     "turbo:lint": "turbo run lint",
     "turbo:typecheck": "turbo run typecheck",
@@ -23,6 +26,7 @@
     "@biomejs/biome": "^2.5.13",
     "@types/bun": "^1.4.2",
     "@types/node": "^26.1.1",
+    "bunup": "^0.16.32",
     "turbo": "^2.10.13",
     "typescript": "^7.0.2"
   }

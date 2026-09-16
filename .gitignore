@@ -3,6 +3,11 @@ node_modules/
 /log.txt
 .DS_Store
 dist/
+packages/*/dist/
+!packages/client/dist/
+!packages/client/dist/**
+!packages/shared/dist/
+!packages/shared/dist/**
 coverage/
 tests/e2e/artifacts/
 packages/cli/tests/e2e/artifacts/

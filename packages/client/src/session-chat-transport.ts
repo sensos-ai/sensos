@@ -2,10 +2,11 @@ import type { ChatTransport, UIMessage, UIMessageChunk } from 'ai'
 import type { Offset } from '@durable-streams/client'
 import type {
   DeliveryRoutedEvent,
+  HarnessFeatures,
   InboxMessage,
+  ModelRef,
   SessionSnapshot as ProtocolSessionSnapshot,
-} from '@sensos-ai/shared/session'
-import type { HarnessFeatures, ModelRef } from '@sensos-ai/shared/models'
+} from '@sensos-ai/shared'
 import type { SensosSessionConnection } from './client'
 import type { RunStreamItem } from './streams'
 

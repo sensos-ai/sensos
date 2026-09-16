@@ -12,7 +12,7 @@
     "./streams": "./src/streams.ts"
   },
   "scripts": {
-    "build": "bun build src/index.ts --outdir dist --target bun",
+    "build": "bun --cwd ../.. bunup --filter shared",
     "typecheck": "tsc --noEmit",
     "lint": "biome check",
     "format": "biome format --write",

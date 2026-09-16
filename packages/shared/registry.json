@@ -1,0 +1,23 @@
+{
+  "items": [
+    {
+      "name": "shared",
+      "type": "registry:item",
+      "title": "Sensos shared protocol",
+      "description": "Portable Sensos protocol schemas, actor keys, and Rivet registry types.",
+      "dependencies": ["ai", "rivetkit", "zod"],
+      "files": [
+        {
+          "path": "dist/index.js",
+          "type": "registry:file",
+          "target": "~/sensos/shared/index.js"
+        },
+        {
+          "path": "dist/index.d.ts",
+          "type": "registry:file",
+          "target": "~/sensos/shared/index.d.ts"
+        }
+      ]
+    }
+  ]
+}

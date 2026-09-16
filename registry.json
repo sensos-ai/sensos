@@ -1,0 +1,9 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "sensos",
+  "homepage": "https://github.com/sensos-ai/sensos",
+  "include": [
+    "packages/shared/registry.json",
+    "packages/client/registry.json"
+  ]
+}

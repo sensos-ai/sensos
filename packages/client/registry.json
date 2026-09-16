@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "name": "client",
+      "type": "registry:item",
+      "title": "Sensos client",
+      "description": "Typed client and transports for a remote Sensos engine.",
+      "dependencies": ["@durable-streams/client", "ai", "rivetkit"],
+      "registryDependencies": ["sensos-ai/sensos/shared"],
+      "files": [
+        {
+          "path": "dist/index.js",
+          "type": "registry:file",
+          "target": "~/sensos/client/index.js"
+        },
+        {
+          "path": "dist/index.d.ts",
+          "type": "registry:file",
+          "target": "~/sensos/client/index.d.ts"
+        }
+      ]
+    }
+  ]
+}
