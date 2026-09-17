@@ -1,0 +1,72 @@
+---
+title: Installation
+sidebar:
+  order: 2
+---
+
+Sensos supports macOS and Linux on x86_64 and arm64. You can also install with apt, dnf, or apk on Debian, Fedora, RHEL, and Alpine.
+
+## Install the latest release
+
+Run the installer:
+
+<Bash command="curl -fsSL https://sensos.dev/install | bash" />
+
+`https://sensos.dev/install` is the canonical installer. Nothing else needs to
+be trusted to install Sensos.
+
+## Review the installer before running it
+
+Piping a script to a shell runs whatever the server returns. If you or your
+organization require a review first, download it, read it, and run the copy you
+read:
+
+<Bash command="curl -fsSL https://sensos.dev/install -o install.sh" />
+
+<Bash command="less install.sh" />
+
+<Bash command="bash install.sh" />
+
+What the script does, in order: detect your platform, resolve the latest
+published version, download and unpack that release archive, install the
+binary, and offer to put it on your `PATH`. Specifically:
+
+- It installs to `~/.local/bin`. Set `SENSOS_INSTALL_DIR` to install somewhere
+  else.
+- If the install directory is not already on your `PATH`, it offers to append a
+  `PATH` line to your shell profile: `~/.zprofile`, `~/.bash_profile`,
+  `~/.zshrc`, `~/.bashrc`, or `~/.profile`. It skips that edit when the exact
+  line is already present.
+- Release archives are downloaded over HTTPS from the Sensos release CDN, with
+  GitHub Releases as a fallback. The script does not check a signature or a
+  published checksum, so an audited install should read the script, fetch the
+  archive it names, and verify that artifact with your own process.
+
+For automation, pass a version so a run is reproducible instead of tracking
+the latest release:
+
+<Bash command={'curl -fsSL https://sensos.dev/install | bash -s -- <version>'} />
+
+## Put Sensos on your PATH
+
+If your shell cannot find `sensos` after installing, add the install directory
+to the current shell:
+
+<Bash command={'export PATH="$HOME/.local/bin:$PATH"'} />
+
+Restarting the shell picks up the line the installer added to your profile.
+
+## Verify the install
+
+To confirm the installation worked, run:
+
+<Bash command="sensos --version" />
+
+## Upgrade
+
+Upgrade to the latest release on the selected channel:
+
+<Bash command="sensos upgrade" />
+
+Add `--channel stable` or `--channel next` for stable or canary release channels
+respectively.

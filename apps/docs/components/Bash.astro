@@ -1,0 +1,103 @@
+---
+import data from 'blume:data'
+import { highlightCode } from 'blume/markdown'
+
+interface Props {
+  command: string
+}
+
+const { command } = Astro.props
+const highlighted = await highlightCode(`$ ${command}`, 'bash', {
+  className: 'bash-highlight',
+  icons: false,
+  themes: data.config.codeThemes,
+})
+---
+
+<div class="bash-snippet prose">
+  <Fragment set:html={highlighted} />
+  <button
+    type="button"
+    aria-label="Copy command"
+    class="bash-copy"
+    data-bash-copy={command}
+  >
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <rect height="13" rx="2" stroke="currentColor" stroke-width="2" width="13" x="8" y="8"></rect>
+      <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path>
+    </svg>
+  </button>
+</div>
+
+<style>
+  .bash-snippet {
+    position: relative;
+    height: 3.5rem;
+    margin: 1rem 0;
+    max-width: none;
+  }
+
+  .bash-snippet :global(pre.bash-highlight) {
+    display: flex;
+    height: 100%;
+    align-items: center;
+    margin: 0;
+    overflow-x: auto;
+    border: 1px solid var(--blume-border);
+    border-radius: var(--blume-radius);
+    padding: 0 3rem 0 1rem;
+  }
+
+  .bash-snippet :global(pre.bash-highlight > code) {
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .bash-copy {
+    position: absolute;
+    top: 50%;
+    inset-inline-end: 0.5rem;
+    display: inline-flex;
+    width: 2rem;
+    height: 2rem;
+    cursor: pointer;
+    transform: translateY(-50%);
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.375rem;
+    color: var(--blume-muted-foreground);
+    transition: color 150ms, background-color 150ms;
+  }
+
+  .bash-copy:hover {
+    background: var(--blume-background);
+    color: var(--blume-foreground);
+  }
+
+  .bash-copy svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .bash-snippet :global(pre.bash-highlight::before) {
+    content: none;
+  }
+</style>
+
+<script>
+  document.addEventListener('click', async (event) => {
+    const target = event.target
+    if (!(target instanceof Element)) return
+
+    const button = target.closest<HTMLButtonElement>('[data-bash-copy]')
+    if (!button) return
+
+    const command = button.dataset.bashCopy
+    if (!command) return
+
+    await navigator.clipboard.writeText(command)
+    button.setAttribute('aria-label', 'Copied')
+    window.setTimeout(() => button.setAttribute('aria-label', 'Copy command'), 1500)
+  })
+</script>

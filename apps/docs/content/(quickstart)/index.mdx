@@ -1,0 +1,53 @@
+---
+title: Quick start
+sidebar:
+  icon: rocket
+  order: 1
+---
+
+import Tabs from "../../components/blume/Tabs.astro"
+import Tab from "blume/components/content/Tab.astro"
+
+<Steps>
+  <Step title="Install">
+
+    <Bash command="curl -fsSL https://sensos.dev/install | bash" />
+    Read [Installation](/installation) to more guidance.
+
+  </Step>
+
+  <Step title="Sign In and run Sensos">
+    Sign in with you preferred provider.
+    `sensos login` opens the authorization flow in the browser and saves the session for future runs.
+
+    <Tabs classes="border-none!">
+      <Tab title="Gateway (Vercel)">
+        <Bash command="sensos login" />
+      </Tab>
+      <Tab title="Codex">
+        <Bash command="sensos login codex" />
+      </Tab>
+      <Tab title="Claude Code">
+        <Bash command="sensos login claude" />
+      </Tab>
+    </Tabs>
+
+    <Callout type="tip">
+      If you've set provider specific environment variables, Sensos will use those credentials instead.
+    </Callout>
+ 
+    {/* To switch accounts later or re-authenticate, Run `sensos switch <provider>` or `/switch <provider>` inside running session., */}
+  </Step>
+
+  <Step title="Start your first task">
+     Start `sensos` from the project you want to work on. The launch directory becomes the primary workspace:
+
+    <Bash command="cd path/to/project" />
+    <Bash command="sensos" />
+
+    Describe your goal:
+    <Panel title="Prompt">
+      Summarize this codebase
+    </Panel>
+  </Step>
+</Steps>
