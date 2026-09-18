@@ -217,7 +217,7 @@ jobs:
       - name: Publish shared and client previews
         id: publish
         run: >-
-          bunx pkg-pr-new publish
+          bun run pkg-pr-new publish
           --previewVersion --packageManager=bun --comment=update --bun
           ./packages/shared ./packages/client
       - name: Add preview URLs to job summary

@@ -28,6 +28,7 @@
     "@types/bun": "^1.4.2",
     "@types/node": "^26.1.1",
     "bunup": "^0.16.32",
+    "pkg-pr-new": "^0.0.88",
     "turbo": "^2.10.13",
     "typescript": "^7.0.2"
   }
