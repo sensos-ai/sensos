@@ -7,7 +7,14 @@ export default defineWorkspace([
     name: 'shared',
     root: 'packages/shared',
     config: {
-      entry: 'src/index.ts',
+      entry: [
+        'src/index.ts',
+        'src/core.ts',
+        'src/models.ts',
+        'src/registry.ts',
+        'src/session.ts',
+        'src/streams.ts',
+      ],
       outDir: 'dist',
       format: 'esm',
       target: 'node',

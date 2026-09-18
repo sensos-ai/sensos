@@ -1,22 +1,45 @@
 {
   "name": "@sensos-ai/shared",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "exports": {
-    ".": "./src/index.ts",
-    "./core": "./src/core.ts",
-    "./models": "./src/models.ts",
-    "./registry": "./src/registry.ts",
-    "./session": "./src/session.ts",
-    "./streams": "./src/streams.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js"
+    },
+    "./models": {
+      "types": "./dist/models.d.ts",
+      "import": "./dist/models.js"
+    },
+    "./registry": {
+      "types": "./dist/registry.d.ts",
+      "import": "./dist/registry.js"
+    },
+    "./session": {
+      "types": "./dist/session.d.ts",
+      "import": "./dist/session.js"
+    },
+    "./streams": {
+      "types": "./dist/streams.d.ts",
+      "import": "./dist/streams.js"
+    }
   },
   "scripts": {
     "build": "bun --cwd ../.. bunup --filter shared",
     "typecheck": "tsc --noEmit",
     "lint": "biome check",
     "format": "biome format --write",
-    "test": "bun test --pass-with-no-tests"
+    "test": "bun test --pass-with-no-tests",
+    "prepublishOnly": "node -e \"throw new Error('npm publication is disabled; use pkg.pr.new previews')\""
   },
   "dependencies": {
     "ai": "^7",

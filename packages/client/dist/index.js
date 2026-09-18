@@ -1,26 +1,26 @@
-// packages/shared/src/core.ts
+// packages/shared/dist/shared/shared-7ak4yh36.js
 import { z } from "zod";
-var SENSOS_PROTOCOL_VERSIONS = [1];
-var LATEST_SENSOS_PROTOCOL_VERSION = SENSOS_PROTOCOL_VERSIONS[0];
-var protocolVersionSchema = z.number().int().positive();
-var supportedProtocolVersionsSchema = z.array(protocolVersionSchema).min(1);
-var protocolDiscoverySchema = z.object({
-  protocolVersion: protocolVersionSchema,
-  supportedProtocolVersions: supportedProtocolVersionsSchema
+var SENSOS_PROTOCOL_VERSIONS2 = [1];
+var LATEST_SENSOS_PROTOCOL_VERSION2 = SENSOS_PROTOCOL_VERSIONS2[0];
+var protocolVersionSchema2 = z.number().int().positive();
+var supportedProtocolVersionsSchema2 = z.array(protocolVersionSchema2).min(1);
+var protocolDiscoverySchema2 = z.object({
+  protocolVersion: protocolVersionSchema2,
+  supportedProtocolVersions: supportedProtocolVersionsSchema2
 });
-var sessionActorKeySchema = z.tuple([
+var sessionActorKeySchema2 = z.tuple([
   z.string().min(1),
   z.string().min(1),
   z.string().min(1)
 ]);
-function sessionActorKey(input) {
-  return sessionActorKeySchema.parse([
+function sessionActorKey2(input) {
+  return sessionActorKeySchema2.parse([
     input.tenantId,
     input.userId,
     input.sessionId
   ]);
 }
-var protocolErrorCodeSchema = z.enum([
+var protocolErrorCodeSchema2 = z.enum([
   "unauthorized",
   "forbidden",
   "not_found",
@@ -31,25 +31,27 @@ var protocolErrorCodeSchema = z.enum([
   "unavailable",
   "internal"
 ]);
-var protocolErrorSchema = z.object({
-  code: protocolErrorCodeSchema,
+var protocolErrorSchema2 = z.object({
+  code: protocolErrorCodeSchema2,
   message: z.string(),
   retryable: z.boolean().default(false),
   details: z.record(z.string(), z.unknown()).optional()
 });
-// packages/shared/src/models.ts
+
+// packages/shared/dist/shared/shared-298pabq2.js
 import { z as z2 } from "zod";
-var modelProviderSchema = z2.enum(["gateway", "codex"]);
-var modelRefSchema = z2.object({
-  provider: modelProviderSchema,
+var modelProviderSchema2 = z2.enum(["gateway", "codex"]);
+var modelRefSchema2 = z2.object({
+  provider: modelProviderSchema2,
   modelId: z2.string().min(1)
 });
-var harnessFeaturesSchema = z2.object({
+var harnessFeaturesSchema2 = z2.object({
   useMockModel: z2.boolean()
 });
-// packages/shared/src/session.ts
+
+// packages/shared/dist/shared/shared-dxx9mz51.js
 import { z as z3 } from "zod";
-var runStatusSchema = z3.enum([
+var runStatusSchema2 = z3.enum([
   "queued",
   "running",
   "cancel_requested",
@@ -58,19 +60,21 @@ var runStatusSchema = z3.enum([
   "cancelled",
   "interrupted"
 ]);
-var sessionInputSchema = z3.object({
-  supportedProtocolVersions: supportedProtocolVersionsSchema,
+var sessionInputSchema2 = z3.object({
+  supportedProtocolVersions: supportedProtocolVersionsSchema2,
   sessionId: z3.string().min(1),
   catalogRevision: z3.number().int().nonnegative().optional(),
   cwd: z3.string().min(1),
-  model: modelRefSchema.optional(),
+  model: modelRefSchema2.optional(),
   instructions: z3.string().optional(),
   initialMessages: z3.array(z3.custom()).optional(),
-  features: harnessFeaturesSchema.partial().optional()
+  features: harnessFeaturesSchema2.partial().optional()
 });
-// packages/shared/src/streams.ts
+
+// packages/shared/dist/shared/shared-5zzdgy4y.js
 import { z as z4 } from "zod";
-var runStreamCursorSchema = z4.string().min(1);
+var runStreamCursorSchema2 = z4.string().min(1);
+
 // packages/client/src/client.ts
 import { createClient } from "rivetkit/client";
 import { configureDefaultLogger } from "rivetkit/log";
@@ -236,7 +240,7 @@ function createSensosClient(options) {
   return {
     endpoint,
     streamsEndpoint,
-    supportedProtocolVersions: SENSOS_PROTOCOL_VERSIONS,
+    supportedProtocolVersions: SENSOS_PROTOCOL_VERSIONS2,
     rivet,
     session: rivet.session,
     readRunStream: createRunStreamReader(streamsEndpoint),
@@ -251,16 +255,16 @@ function createSensosClient(options) {
       if (!response.ok) {
         throw new Error(`Sensos protocol discovery failed with HTTP ${response.status}`);
       }
-      const discovery = protocolDiscoverySchema.parse(await response.json());
-      const selected = SENSOS_PROTOCOL_VERSIONS.find((version) => discovery.supportedProtocolVersions.includes(version));
+      const discovery = protocolDiscoverySchema2.parse(await response.json());
+      const selected = SENSOS_PROTOCOL_VERSIONS2.find((version) => discovery.supportedProtocolVersions.includes(version));
       if (selected === undefined) {
-        throw new Error(`Sensos protocol mismatch: client supports ${SENSOS_PROTOCOL_VERSIONS.join(", ")}; engine supports ${discovery.supportedProtocolVersions.join(", ")}`);
+        throw new Error(`Sensos protocol mismatch: client supports ${SENSOS_PROTOCOL_VERSIONS2.join(", ")}; engine supports ${discovery.supportedProtocolVersions.join(", ")}`);
       }
       return selected;
     },
     assertProtocolVersion(version) {
-      if (!SENSOS_PROTOCOL_VERSIONS.includes(version)) {
-        throw new Error(`Sensos protocol mismatch: engine selected ${version}; client supports ${SENSOS_PROTOCOL_VERSIONS.join(", ")}`);
+      if (!SENSOS_PROTOCOL_VERSIONS2.includes(version)) {
+        throw new Error(`Sensos protocol mismatch: engine selected ${version}; client supports ${SENSOS_PROTOCOL_VERSIONS2.join(", ")}`);
       }
       return version;
     },
@@ -609,6 +613,6 @@ export {
   readRunStream,
   resolveSensosRemoteTarget,
   runStreamUrl,
-  sessionActorKey,
+  sessionActorKey2 as sessionActorKey,
   waitForSessionDeletion
 };

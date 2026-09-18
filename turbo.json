@@ -19,7 +19,9 @@
     "format": {
       "cache": false
     },
-    "typecheck": {},
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
     "clean": {
       "cache": false
     },

@@ -10,35 +10,15 @@ import {
   protocolErrorCodeSchema2,
   protocolErrorSchema2
 } from "./shared/shared-7ak4yh36.js";
-import {
-  modelProviderSchema2,
-  modelRefSchema2,
-  harnessFeaturesSchema2
-} from "./shared/shared-298pabq2.js";
-import {
-  runStatusSchema2,
-  sessionInputSchema2
-} from "./shared/shared-dxx9mz51.js";
-import {
-  runStreamCursorSchema2,
-  runStreamName2
-} from "./shared/shared-5zzdgy4y.js";
 export {
   LATEST_SENSOS_PROTOCOL_VERSION2 as LATEST_SENSOS_PROTOCOL_VERSION,
   SENSOS_PROTOCOL_VERSIONS2 as SENSOS_PROTOCOL_VERSIONS,
-  harnessFeaturesSchema2 as harnessFeaturesSchema,
-  modelProviderSchema2 as modelProviderSchema,
-  modelRefSchema2 as modelRefSchema,
   negotiateProtocolVersion2 as negotiateProtocolVersion,
   protocolDiscoverySchema2 as protocolDiscoverySchema,
   protocolErrorCodeSchema2 as protocolErrorCodeSchema,
   protocolErrorSchema2 as protocolErrorSchema,
   protocolVersionSchema2 as protocolVersionSchema,
-  runStatusSchema2 as runStatusSchema,
-  runStreamCursorSchema2 as runStreamCursorSchema,
-  runStreamName2 as runStreamName,
   sessionActorKey2 as sessionActorKey,
   sessionActorKeySchema2 as sessionActorKeySchema,
-  sessionInputSchema2 as sessionInputSchema,
   supportedProtocolVersionsSchema2 as supportedProtocolVersionsSchema
 };
