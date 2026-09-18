@@ -218,7 +218,7 @@ jobs:
         id: publish
         run: >-
           bunx pkg-pr-new publish
-          --previewVersion --no-compact --packageManager=bun --comment=update --bun
+          --previewVersion --packageManager=bun --comment=update --bun
           ./packages/shared ./packages/client
       - name: Add preview URLs to job summary
         env:
