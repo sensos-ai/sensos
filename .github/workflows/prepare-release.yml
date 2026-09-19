@@ -1,0 +1,128 @@
+name: Prepare release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: Optional release type (patch, minor, or major); leave empty for an AI suggestion
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare release PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: main
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: Prepare release metadata
+        id: autoship
+        uses: ./.github/actions/autoship
+        with:
+          release_type: ${{ inputs.release_type }}
+          evaluation-model: ${{ vars.EVAL_MODEL || 'typesafe-ai/jev' }}
+          changelog-model: ${{ vars.CHANGELOG_MODEL }}
+          ai-gateway-api-key: ${{ secrets.AI_GATEWAY_API_KEY }}
+
+      - name: Create scoped GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Create GitHub-signed release commit
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          branch="$(jq --raw-output .branch .release/preparation.json)"
+          head_sha="$(git rev-parse HEAD)"
+          if gh api "repos/$REPOSITORY/git/ref/heads/$branch" >/dev/null 2>&1; then
+            echo "Release branch $branch already exists. Finish or remove its release PR before retrying."
+            exit 1
+          fi
+
+          gh api --method POST "repos/$REPOSITORY/git/refs" \
+            --field ref="refs/heads/$branch" \
+            --field sha="$head_sha" >/dev/null
+
+          cleanup_branch() {
+            gh api --method DELETE "repos/$REPOSITORY/git/refs/heads/$branch" >/dev/null 2>&1 || true
+          }
+          trap cleanup_branch ERR
+
+          jq \
+            --arg repository "$REPOSITORY" \
+            --arg branch "$branch" \
+            --arg head "$head_sha" \
+            --arg message "$(jq --raw-output .commitMessage .release/preparation.json)" \
+            '{
+              query: "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid url } } }",
+              variables: {
+                input: {
+                  branch: { repositoryNameWithOwner: $repository, refName: $branch },
+                  expectedHeadOid: $head,
+                  message: { headline: $message },
+                  fileChanges: { additions: .additions }
+                }
+              }
+            }' .release/preparation.json > .release/commit-request.json
+
+          gh api graphql --input .release/commit-request.json \
+            --jq '.data.createCommitOnBranch.commit.url'
+          trap - ERR
+
+      - name: Open release pull request
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          branch="$(jq --raw-output .branch .release/preparation.json)"
+          cleanup_branch() {
+            gh api --method DELETE "repos/$REPOSITORY/git/refs/heads/$branch" >/dev/null 2>&1 || true
+          }
+          trap cleanup_branch ERR
+
+          jq --raw-output .prBody .release/preparation.json > .release/pr-body.md
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "$(jq --raw-output .title .release/preparation.json)" \
+            --body-file .release/pr-body.md \
+            --label release
+          trap - ERR
+
+      - name: Summarize release preparation
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_TYPE: ${{ steps.autoship.outputs.release_type }}
+          RELEASE_VERSION: ${{ steps.autoship.outputs.version }}
+        run: |
+          branch="$(jq --raw-output .branch .release/preparation.json)"
+          {
+            echo "## Release preparation"
+            echo
+            echo "- Version: \`v$RELEASE_VERSION\`"
+            echo "- Release type: \`$RELEASE_TYPE\`"
+            echo "- Branch: \`$branch\`"
+            echo "- Pull request: $(gh pr view "$branch" --json url --jq .url)"
+          } >> "$GITHUB_STEP_SUMMARY"

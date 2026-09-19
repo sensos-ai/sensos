@@ -83,7 +83,7 @@ jobs:
             base="HEAD^"
           fi
           changed_files="$(git diff --name-only "$base" HEAD)"
-          if printf '%s\n' "$changed_files" | grep -Eq '^((packages/|scripts/(ci|release)/|scripts/test-remote-e2e\.ts$)|package\.json$|bun\.lock$|bunup\.config\.ts$|turbo\.json$|biome\.json(c)?$|tsconfig\.json$|\.github/workflows/(ci|prepare-release|tag-release|canary|release)\.yml$)'; then
+          if printf '%s\n' "$changed_files" | grep -Eq '^((packages/|scripts/(ci|release)/|\.github/actions/autoship/|scripts/test-remote-e2e\.ts$)|package\.json$|bun\.lock$|bunup\.config\.ts$|turbo\.json$|biome\.json(c)?$|tsconfig\.json$|\.github/workflows/(ci|prepare-release|tag-release|canary|release)\.yml$)'; then
             echo "packages=true" >> "$GITHUB_OUTPUT"
           else
             echo "packages=false" >> "$GITHUB_OUTPUT"
