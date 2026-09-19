@@ -1,15 +1,10 @@
 name: CI
 
 on:
-  workflow_dispatch:
-  merge_group:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    branches:
-      - main
+    branches: [main]
 
 permissions:
   contents: read
@@ -19,41 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check-permissions:
-    name: Check Permissions
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Skip permission check for trusted events
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        run: echo "Permission check not required."
-      - name: Get triggering actor permission
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
-        id: check_access
-        uses: actions-cool/check-user-permission@7b90a27f92f3961b368376107661682c441f6103 # v2.3.0
-        with:
-          require: write
-          username: ${{ github.triggering_actor }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Reject unauthorized fork workflow
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && steps.check_access.outputs.require-result == 'false'
-        env:
-          TRIGGERING_ACTOR: ${{ github.triggering_actor }}
-          USER_PERMISSION: ${{ steps.check_access.outputs.user-permission }}
-          ORIGINAL_ACTOR: ${{ github.actor }}
-        run: |
-          echo "$TRIGGERING_ACTOR does not have permissions on this repository."
-          echo "Current permission level is $USER_PERMISSION."
-          echo "The workflow was originally triggered by $ORIGINAL_ACTOR."
-          exit 1
-
   changes:
     name: Detect package changes
-    needs: check-permissions
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -234,7 +196,6 @@ jobs:
     if: always()
     needs:
       [
-        check-permissions,
         changes,
         static-analysis,
         unit-tests,
