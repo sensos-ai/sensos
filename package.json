@@ -8,6 +8,13 @@
     "apps/*",
     "packages/*"
   ],
+  "catalog": {
+    "@ai-sdk/gateway": "^4.0.87",
+    "@ai-sdk/openai": "^4.0.71",
+    "@ai-sdk/provider": "^4.0.17",
+    "@ai-sdk/provider-utils": "^5.0.45",
+    "ai": "^7.0.107"
+  },
   "scripts": {
     "build:packages": "bunup --filter shared,client",
     "build": "turbo run build",
@@ -26,7 +33,8 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.13",
     "@types/bun": "^1.4.2",
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.6.1",
+    "ai": "catalog:",
     "bunup": "^0.16.32",
     "pkg-pr-new": "^0.0.88",
     "turbo": "^2.10.13",

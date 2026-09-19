@@ -20,15 +20,15 @@
     "clean": "git clean -xdf node_modules dist \"*.tsbuildinfo\""
   },
   "dependencies": {
-    "@ai-sdk/gateway": "^4.0.80",
-    "@ai-sdk/openai": "^4.0.66",
-    "@ai-sdk/provider": "^4.0.15",
-    "@ai-sdk/provider-utils": "^5.0.41",
+    "@ai-sdk/gateway": "catalog:",
+    "@ai-sdk/openai": "catalog:",
+    "@ai-sdk/provider": "catalog:",
+    "@ai-sdk/provider-utils": "catalog:",
     "@inquirer/prompts": "^8.7.2",
     "@napi-rs/keyring": "2.1.0",
     "@sensos-ai/client": "workspace:*",
     "@sensos-ai/shared": "workspace:*",
-    "ai": "^7",
+    "ai": "catalog:",
     "drizzle-orm": "0.45.2",
     "nanoevents": "^10.0.0",
     "zod": "^4"
