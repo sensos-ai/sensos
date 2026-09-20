@@ -144,7 +144,7 @@ download_archive() {
   output="$3"
   primary_url="$CDN_BASE_URL/$release/$asset"
 
-  if download "$primary_url" "$output"; then return; fi
+  if download "$primary_url" "$output" && download "$CDN_BASE_URL/$release/SHA256SUMS" "$tmp_dir/SHA256SUMS"; then return; fi
 
   tag="$(github_tag "$release")"
   if [ "$tag" = latest ]; then
@@ -154,6 +154,24 @@ download_archive() {
   fi
   warn 'release CDN download failed; trying GitHub Releases'
   download "$fallback_url" "$output" || fail "could not download $asset"
+  checksum_url="${fallback_url%/*}/SHA256SUMS"
+  download "$checksum_url" "$tmp_dir/SHA256SUMS" || fail 'could not download GitHub release checksums'
+}
+
+verify_archive() {
+  asset="$1"
+  archive="$2"
+  expected="$(awk -v file="$asset" '$2 == file { print $1 }' "$tmp_dir/SHA256SUMS")"
+  printf '%s\n' "$expected" | grep -Eq '^[0-9a-f]{64}$' || fail 'missing or invalid release checksum'
+  [ "$(printf '%s\n' "$expected" | wc -l | tr -d ' ')" = 1 ] || fail 'duplicate release checksum'
+  if command -v sha256sum >/dev/null 2>&1; then
+    actual="$(sha256sum "$archive" | awk '{print $1}')"
+  elif command -v shasum >/dev/null 2>&1; then
+    actual="$(shasum -a 256 "$archive" | awk '{print $1}')"
+  else
+    fail 'sha256sum or shasum is required to verify the download'
+  fi
+  [ "$actual" = "$expected" ] || fail 'release checksum mismatch; refusing to install'
 }
 
 pick_profile() {
@@ -215,6 +233,7 @@ main() {
 
   step "Downloading Sensos $resolved for $target"
   download_archive "$resolved" "$asset" "$archive"
+  verify_archive "$asset" "$archive"
   archive_contents="$(tar -tzf "$archive")" || fail 'downloaded release is not a valid tar.gz archive'
   [ "$archive_contents" = sensos ] || fail 'release archive must contain only the sensos executable'
   tar -xzf "$archive" -C "$tmp_dir"
