@@ -12,6 +12,9 @@ on:
       target:
         required: true
         type: string
+      asset:
+        required: true
+        type: string
       runner:
         required: true
         type: string
@@ -38,12 +41,14 @@ jobs:
       - name: Validate release configuration
         env:
           TARGET: ${{ inputs.target }}
+          ASSET: ${{ inputs.asset }}
           VERSION: ${{ inputs.version }}
           REGISTRY_ENDPOINT: ${{ inputs.registry_endpoint }}
           STREAMS_URL: ${{ inputs.streams_url }}
         run: |
           [[ "$TARGET" =~ ^(linux|darwin)-(x64|arm64)$ ]]
-          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-canary\.[0-9]+)?$ ]]
+          [[ "$ASSET" =~ ^(linux|macos)-(x86_64|aarch64)$ ]]
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           [[ -n "$REGISTRY_ENDPOINT" && -n "$STREAMS_URL" ]]
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -70,20 +75,21 @@ jobs:
           SENSOS_REGISTRY_ENDPOINT: ${{ inputs.registry_endpoint }}
           SENSOS_STREAMS_URL: ${{ inputs.streams_url }}
           ASSET_DIR: ${{ runner.temp }}/release-assets
+          ASSET: ${{ inputs.asset }}
         run: |
           bun run turbo:build --force --filter=@sensos-ai/shared --filter=@sensos-ai/client
           bun run --cwd packages/cli scripts/build-sensos.ts
           bun run scripts/release/archive.ts
-          test -f "$ASSET_DIR/sensos-$SENSOS_BUILD_TARGET.tar.gz"
+          test -f "$ASSET_DIR/sensos-$ASSET.tar.gz"
           test "$(packages/cli/dist/sensos-$SENSOS_BUILD_TARGET --version)" = "$SENSOS_RELEASE_VERSION"
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
         id: attestation
         with:
-          subject-path: ${{ runner.temp }}/release-assets/sensos-${{ inputs.target }}.tar.gz
+          subject-path: ${{ runner.temp }}/release-assets/sensos-${{ inputs.asset }}.tar.gz
       - name: Include attestation bundle with release assets
         env:
           ASSET_DIR: ${{ runner.temp }}/release-assets
-          TARGET: ${{ inputs.target }}
+          TARGET: ${{ inputs.asset }}
           BUNDLE_PATH: ${{ steps.attestation.outputs.bundle-path }}
         run: |
           test -s "$BUNDLE_PATH"
@@ -92,7 +98,8 @@ jobs:
         with:
           name: release-${{ inputs.target }}
           path: |
-            ${{ runner.temp }}/release-assets/sensos-${{ inputs.target }}.tar.gz
-            ${{ runner.temp }}/release-assets/sensos-${{ inputs.target }}.intoto.jsonl
+            ${{ runner.temp }}/release-assets/sensos-${{ inputs.asset }}.tar.gz
+            ${{ runner.temp }}/release-assets/sensos-${{ inputs.asset }}.intoto.jsonl
           if-no-files-found: error
+          overwrite: true
           retention-days: 30

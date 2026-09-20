@@ -2,14 +2,11 @@ import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { required, libraries, run } from './common'
 import { stagePackages } from './stage-packages'
-import { Release } from 'actions/autoship/lib/semver/release'
+import { parseStableRelease } from 'actions/autoship/lib/semver/release'
 
 const channel = required('CHANNEL')
-const version = new Release(required('VERSION'))
-if (
-  !['stable', 'canary'].includes(channel) ||
-  version.isPrerelease !== (channel === 'canary')
-)
+const version = parseStableRelease(required('VERSION'))
+if (channel !== 'stable')
   throw new Error('Invalid release channel/version')
 if (process.env.GITHUB_ACTIONS !== 'true')
   throw new Error(
@@ -29,7 +26,7 @@ try {
     await Bun.write(path, `${JSON.stringify(manifest, null, 2)}\n`)
   }
   // Keep Changesets' NDJSON publication events intact for the publish action.
-  // A run-specific tag avoids rolling latest/canary backward on an old retry.
+  // A version-specific tag avoids moving latest backward on an old retry.
   await run([
     'bun',
     'run',

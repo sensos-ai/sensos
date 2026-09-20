@@ -45,7 +45,7 @@ try {
   )
   const gzip = Bun.spawn(['gzip', '-n'], {
     stdin: tar.stdout,
-    stdout: Bun.file(join(destination, `sensos-${target.name}.tar.gz`)),
+    stdout: Bun.file(join(destination, `sensos-${target.asset}.tar.gz`)),
     stderr: 'inherit',
   })
   if ((await tar.exited) !== 0 || (await gzip.exited) !== 0)
@@ -53,7 +53,7 @@ try {
   await run([
     'tar',
     '-tzf',
-    join(destination, `sensos-${target.name}.tar.gz`),
+    join(destination, `sensos-${target.asset}.tar.gz`),
   ])
 } finally {
   await rm(stage, { recursive: true, force: true })

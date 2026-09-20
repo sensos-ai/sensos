@@ -52,23 +52,6 @@ jobs:
           else
             echo "packages=false" >> "$GITHUB_OUTPUT"
           fi
-      - name: Record validated push identity
-        if: github.event_name == 'push'
-        env:
-          SOURCE_SHA: ${{ github.sha }}
-          BASE_SHA: ${{ github.event.before }}
-          RUN_NUMBER: ${{ github.run_number }}
-        run: |
-          printf '{"source_sha":"%s","base_sha":"%s","run_number":%s}\n' "$SOURCE_SHA" "$BASE_SHA" "$RUN_NUMBER" > ci-source.json
-      - name: Upload push identity
-        if: github.event_name == 'push'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: ci-source
-          path: ci-source.json
-          if-no-files-found: error
-          retention-days: 30
-
   lint:
     name: Lint
     needs: changes

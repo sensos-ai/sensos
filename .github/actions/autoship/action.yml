@@ -11,7 +11,8 @@ inputs:
     default: typesafe-ai/jev
   changelog-model:
     description: AI Gateway model used to generate release notes.
-    required: true
+    required: false
+    default: openai/gpt-5.6-luna
   ai-gateway-api-key:
     description: AI Gateway API key.
     required: true

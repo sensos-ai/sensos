@@ -43,7 +43,7 @@ function validate(input: VersionInput, notes: string): void {
   const current = parseStableRelease(input.currentVersion)
   const next = parseStableRelease(input.nextVersion)
   if (
-    current.next(input.releaseType).version !== next.version ||
+    current.bump(input.releaseType).version !== next.version ||
     input.nextTag !== next.tagName ||
     !notes.trim()
   ) {
@@ -85,6 +85,9 @@ async function apply(): Promise<void> {
     }
   }
   await writeChangeset(staged)
+  const root = await Bun.file('package.json').json()
+  root.version = staged.input.nextVersion
+  await Bun.write('package.json', `${JSON.stringify(root, null, 2)}\n`)
   await run(['bun', 'run', 'changeset:version'])
   for (const name of packages) {
     const path = `packages/${name.split('/')[1]}/package.json`
@@ -118,6 +121,7 @@ async function apply(): Promise<void> {
         channel: 'stable',
         releaseType: staged.input.releaseType,
         baseTag: staged.input.latestTag,
+        runId: process.env.GITHUB_RUN_ID ?? null,
       },
       null,
       2

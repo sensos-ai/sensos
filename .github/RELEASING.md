@@ -4,10 +4,11 @@
 
 - PRs: `CI / checks` requires lint, typecheck, and unit tests. Docs-only changes skip installation. No workflow runs E2E or integration suites.
 - Same-repository PRs: **Package previews** independently publishes shared/client with the repository-installed pkg.pr.new. Its summary contains install commands; failure is not a required check. CLI packages are never published.
-- Main: successful push CI hands its exact source/base SHAs to **Release**. Relevant normal pushes produce `next-patch-canary.<CI-run-number>` snapshots (starting at `0.0.1-canary.<run-number>` from the unreleased `0.0.0` baseline); docs-only pushes do nothing.
-- Stable: dispatch **Prepare release** on main, optionally supply `release_type`. Autoship generates notes and a Changeset; Changesets opens/updates `changeset-release/main`. Review and merge it normally. Successful main CI then publishes that stable version. There is no tag-trigger workflow.
+- Main pushes run validation only. They never publish a release.
+- Dispatch **Release** on main, optionally supply `release_type`. Autoship resolves the release type, uses `Release.bump()` to calculate the version, and generates AI notes. Changesets applies that version to CLI/shared/client. The workflow validates and commits the prepared version, builds four binaries, publishes the SDK packages, and creates GitHub releases plus the CDN mirror.
+- Canary is disabled. Versions start from the unreleased `0.0.0` baseline; choosing `patch` produces `0.0.1`. CI run numbers never affect versions.
 
-Changesets versions CLI/shared/client together. The CLI stays private and is distributed only as compiled binaries; shared/client publish privately to GitHub Packages. Canary version changes exist only in the runner checkout. Do not manually version one package independently.
+Changesets versions CLI/shared/client together and checks its result against `Release.bump()`. The root manifest is synchronized too. The CLI stays private and is distributed only as compiled binaries; shared/client publish privately to GitHub Packages. Do not manually version one package independently.
 
 ## Required setup
 
@@ -15,11 +16,12 @@ Configure these repository variables/secrets before enabling publication:
 
 | Kind | Name | Purpose |
 | --- | --- | --- |
-| Variable | `RELEASE_APP_ID` | Installed GitHub App with repository contents and pull requests write access |
-| Secret | `RELEASE_APP_PRIVATE_KEY` | App private key; App token allows the release PR to trigger ordinary CI |
+| Secret | `RELEASE_TOKEN` | Token with contents write access and permission to bypass main protection for the prepared version commit |
+| Variable | `RELEASE_APP_ID` | Optional alternative: installed GitHub App with contents write access and main-rule bypass |
+| Secret | `RELEASE_APP_PRIVATE_KEY` | Required when using the GitHub App alternative |
 | Secret | `AI_GATEWAY_API_KEY` | Autoship release-type evaluation and changelog generation |
 | Variable | `EVAL_MODEL` | Optional; defaults to `typesafe-ai/jev` |
-| Variable | `CHANGELOG_MODEL` | AI Gateway changelog model |
+| Variable | `CHANGELOG_MODEL` | Optional AI Gateway changelog model; defaults to `openai/gpt-5.6-luna` |
 | Variable | `TURBO_TEAM` | Optional Vercel cache team; configure trusted OIDC policies, deny fork identities |
 | Variable | `SENSOS_REGISTRY_ENDPOINT` | Production HTTPS registry endpoint |
 | Variable | `SENSOS_STREAMS_URL` | Production HTTPS streams endpoint |
@@ -45,17 +47,19 @@ For backend Actions, grant package-read access to the backend repository, set `p
 //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
 ```
 
-Use that workflow's `GITHUB_TOKEN` as `NODE_AUTH_TOKEN`. Local consumers need a classic PAT with `read:packages` and organization SSO authorization when applicable. Never commit tokens. Install the desired shared/client versions, or use `@canary`. The backend checkout is not changed by this work. PR preview URLs require no private-registry authentication.
+Use that workflow's `GITHUB_TOKEN` as `NODE_AUTH_TOKEN`. Local consumers need a classic PAT with `read:packages` and organization SSO authorization when applicable. Never commit tokens. Install the desired shared/client versions or `@latest`. The backend checkout is not changed by this work. PR preview URLs require no private-registry authentication.
 
-CLI users install through `curl -fsSL https://releases.sensos.dev/install | sh`, optionally `sh -s -- canary` or `sh -s -- 0.0.1`. The installer checks `SHA256SUMS` from the same source as the archive and refuses mismatches before replacing the installed binary.
+CLI users install through `curl -fsSL https://releases.sensos.dev/install | sh`, optionally `sh -s -- 0.0.1`. The installer checks `SHA256SUMS` from the same source as the archive and refuses mismatches before replacing the installed binary. Until the first manual release succeeds there is no `latest` to install.
 
 ## Artifacts and recovery
 
-Each immutable `v<version>` GitHub release and R2 `<version>/` directory contains four `sensos-<target>.tar.gz` files, provenance bundles, `SHA256SUMS`, and `release.json` source/digest metadata. Archives contain only `sensos`. The public R2 domain must expose these paths. Configure CDN rules to respect `Cache-Control: no-store` for `latest.txt`, `canary.txt`, and channel JSON; do not force-cache pointers. Versioned artifacts are immutable.
+The CLI release is titled `Sensos CLI v<version>` with tag `v<version>`. SDK releases use their complete package identities: `@sensos-ai/shared@<version>` and `@sensos-ai/client@<version>`. Only the CLI release is marked GitHub Latest. SDK releases carry their Changesets changelog; they do not duplicate the CLI binaries.
 
-Re-run the **Release** run to recover a partial publication. The originating CI run number, not the release run attempt, determines a canary identity. Registry selection may return `none` after a successful package publish; binary/GitHub/R2 completion still proceeds. Existing conflicting tags or immutable bytes fail instead of being overwritten. Attestation signatures are preserved on retries when they match the archive digest.
+The CLI release and R2 `<version>/` directory contain `sensos-linux-x86_64.tar.gz`, `sensos-linux-aarch64.tar.gz`, `sensos-macos-x86_64.tar.gz`, `sensos-macos-aarch64.tar.gz`, matching provenance bundles, `SHA256SUMS`, and `release.json`. Archives contain only `sensos`. Configure CDN rules to respect `Cache-Control: no-store` for `latest.txt` and `latest.json`; versioned artifacts are immutable.
 
-Packages first publish under a version-specific `release-<version>` dist-tag. Only after mirrored binaries succeed does publication promote `latest` or `canary`. Serialized publication and R2 channel state prevent older retries from regressing channel pointers. Stable never updates canary and vice versa. A final `complete.json` marker skips fully completed retries. Do not manually edit completion/channel metadata; investigate and resolve conflicts rather than deleting immutable assets blindly.
+Re-run the same **Release** run to recover partial publication. Preparation records its workflow run ID and reuses the exact committed version and source on retries, including after main advances. A new manual run refuses to increment an incompletely published version. Registry selection may return `none` after a successful package publish; binary/GitHub/R2 completion still proceeds. Existing conflicting tags or immutable bytes fail instead of being overwritten. Attestation signatures are preserved on retries when they match the archive digest.
+
+Packages first publish under a version-specific `release-<version>` dist-tag. Only after mirrored binaries succeed does publication promote `latest`. Serialized publication and R2 version comparison prevent older retries from regressing that pointer. A final `complete.json` marker records successful publication. Do not manually edit completion metadata; investigate conflicts rather than deleting immutable assets blindly.
 
 Publication runs without restored build outputs (Bun dependency downloads may be cached). Rebuilding with different production configuration or a different toolchain can produce an immutable-asset conflict; keep release variables fixed while recovering a run. No command in local verification publishes packages, tags, GitHub releases, or R2 objects.
 

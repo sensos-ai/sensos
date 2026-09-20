@@ -24,8 +24,7 @@ Usage:
   install.sh --release VERSION|CHANNEL
   install.sh --version VERSION|CHANNEL
 
-VERSION may include or omit the leading "v". CHANNEL is "latest" or
-"canary".
+VERSION may include or omit the leading "v". CHANNEL is "latest".
 
 Environment:
   SENSOS_RELEASE             Release to install (default: latest)
@@ -64,28 +63,28 @@ parse_args() {
 
 normalize_release() {
   case "$1" in
-    latest|canary) printf '%s\n' "$1" ;;
+    latest) printf '%s\n' "$1" ;;
     v*) printf '%s\n' "${1#v}" ;;
     *) printf '%s\n' "$1" ;;
   esac
 }
 
 validate_release() {
-  case "$1" in latest|canary) return ;; esac
+  case "$1" in latest) return ;; esac
   if ! printf '%s\n' "$1" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$'; then
-    fail "invalid release '$1'; expected latest, canary, or a semantic version"
+    fail "invalid release '$1'; expected latest or a semantic version"
   fi
 }
 
 detect_target() {
   case "$(uname -s)" in
     Linux) os="linux" ;;
-    Darwin) os="darwin" ;;
+    Darwin) os="macos" ;;
     *) fail "unsupported operating system: $(uname -s)" ;;
   esac
   case "$(uname -m)" in
-    x86_64|amd64) arch="x64" ;;
-    arm64|aarch64) arch="arm64" ;;
+    x86_64|amd64) arch="x86_64" ;;
+    arm64|aarch64) arch="aarch64" ;;
     *) fail "unsupported architecture: $(uname -m)" ;;
   esac
   printf '%s-%s\n' "$os" "$arch"
@@ -117,7 +116,7 @@ download_text() {
 resolve_release() {
   requested="$1"
   case "$requested" in
-    latest|canary)
+    latest)
       if resolved="$(download_text "$CDN_BASE_URL/$requested.txt" 2>/dev/null)"; then
         resolved="$(normalize_release "$(printf '%s' "$resolved" | tr -d '[:space:]')")"
         validate_release "$resolved"
@@ -133,7 +132,7 @@ resolve_release() {
 
 github_tag() {
   case "$1" in
-    latest|canary) printf '%s\n' "$1" ;;
+    latest) printf '%s\n' "$1" ;;
     *) printf 'v%s\n' "$1" ;;
   esac
 }

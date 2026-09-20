@@ -129,7 +129,9 @@ async function main(): Promise<void> {
     ? (releaseTypeInput as StableReleaseType)
     : await suggestReleaseType(context)
 
-  const nextRelease = (latestRelease ?? currentVersion).next(releaseType)
+  const nextRelease = parseStableRelease(currentVersion.version).bump(
+    releaseType
+  )
   const nextVersion = nextRelease.version
   const nextTag = nextRelease.tagName
 

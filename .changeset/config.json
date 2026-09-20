@@ -8,6 +8,5 @@
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": ["@sensos-ai/docs"],
-  "privatePackages": { "version": true, "tag": true },
-  "snapshot": { "useCalculatedVersion": true, "prereleaseTemplate": "{tag}" }
+  "privatePackages": { "version": true, "tag": false }
 }
