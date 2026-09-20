@@ -185,6 +185,8 @@ jobs:
           github-token: ${{ github.token }}
           script: bun run publish:packages
           create-github-releases: 'false'
+          # Our publisher tags SOURCE_SHA; this action tags the workflow's original SHA.
+          push-git-tags: 'false'
       - name: Download validated archives
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
