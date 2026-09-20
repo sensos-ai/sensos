@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   prepare:
-    name: Prepare and validate release
+    name: Prepare release
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -65,17 +65,17 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.2
-      - name: Find existing preparation for this run
+      - name: Check for prepared release
         id: context
         env:
           GH_TOKEN: ${{ github.token }}
         run: bun run scripts/release/prepare-context.ts
-      - name: Restore exact prepared commit on retry
+      - name: Restore prepared release
         if: steps.context.outputs.resume == 'true'
         env:
           PREPARED_SHA: ${{ steps.context.outputs.source_sha }}
         run: git checkout --detach "$PREPARED_SHA"
-      - name: Generate version and AI changelog
+      - name: Prepare version and changelog
         if: steps.context.outputs.resume != 'true'
         uses: ./.github/actions/autoship
         with:
@@ -83,17 +83,17 @@ jobs:
           evaluation-model: ${{ vars.EVAL_MODEL || 'typesafe-ai/jev' }}
           changelog-model: ${{ vars.CHANGELOG_MODEL || 'openai/gpt-5.6-luna' }}
           ai-gateway-api-key: ${{ secrets.AI_GATEWAY_API_KEY }}
-      - name: Apply Changesets version and release notes
+      - name: Apply release version
         if: steps.context.outputs.resume != 'true'
         run: bun run .github/actions/autoship/prepare-release.ts apply
-      - name: Install prepared dependencies
+      - name: Install dependencies
         run: bun install --frozen-lockfile
-      - name: Validate prepared release
+      - name: Check release
         run: |
           bun run turbo:lint
           bun run turbo:typecheck
           bun run turbo:test
-      - name: Commit prepared version to main
+      - name: Commit release
         if: steps.context.outputs.resume != 'true'
         run: |
           git config user.name 'github-actions[bot]'
@@ -102,12 +102,12 @@ jobs:
           version=$(bun -e 'console.log((await Bun.file(".release/preparation.json").json()).version)')
           git commit -m "chore(release): prepare v$version"
           git push origin HEAD:main
-      - name: Export release identity
+      - name: Export version and commit
         id: release
         run: |
           echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "version=$(bun -e 'console.log((await Bun.file(".release/preparation.json").json()).version)')" >> "$GITHUB_OUTPUT"
-      - name: Read binary targets
+      - name: Configure build matrix
         id: targets
         run: echo "matrix=$(bun run scripts/release/targets.ts)" >> "$GITHUB_OUTPUT"
 
@@ -168,17 +168,17 @@ jobs:
         run: |
           echo '@sensos-ai:registry=https://npm.pkg.github.com' > "$NPM_CONFIG_USERCONFIG"
           echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> "$NPM_CONFIG_USERCONFIG"
-      - name: Select registry publication mode
+      - name: Check unpublished packages
         id: mode
         uses: changesets/action/select-mode@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
-      - name: Reject unversioned release state
+      - name: Require versioned packages
         if: steps.mode.outputs.mode == 'version'
         run: |
           echo 'Changesets requires versioning; preparation did not produce a publishable version.' >&2
           exit 1
-      - name: Build libraries
+      - name: Build SDK packages
         run: bun run turbo:build --force --filter=@sensos-ai/shared --filter=@sensos-ai/client
-      - name: Publish private SDK packages
+      - name: Publish SDK packages
         if: steps.mode.outputs.mode == 'publish'
         uses: changesets/action/publish@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
@@ -187,13 +187,13 @@ jobs:
           create-github-releases: 'false'
           # Our publisher tags SOURCE_SHA; this action tags the workflow's original SHA.
           push-git-tags: 'false'
-      - name: Download validated archives
+      - name: Download release artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: release-*
           merge-multiple: true
           path: ${{ runner.temp }}/release-assets
-      - name: Write checksums
+      - name: Generate checksums
         run: bun run scripts/release/checksums.ts
       - name: Create publication App token
         id: release-app-token

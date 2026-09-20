@@ -67,22 +67,31 @@ jobs:
           bun -e 'import { targets } from "./scripts/lib/targets.ts"; const target = targets.find(target => target.name === process.env.SENSOS_BUILD_TARGET); if (!target) throw new Error("Unknown target"); const parent = Bun.resolveSync("@napi-rs/keyring", `${process.cwd()}/packages/cli`); const binding = Bun.resolveSync(`@napi-rs/keyring-${target.keyring}`, parent); if (!(await Bun.file(binding).exists())) throw new Error(`Missing ${binding}`)'
         env:
           SENSOS_BUILD_TARGET: ${{ inputs.target }}
-      - name: Compile and archive
+      - name: Build SDK packages
+        run: bun run turbo:build --force --filter=@sensos-ai/shared --filter=@sensos-ai/client
+      - name: Build CLI
         env:
           SENSOS_BUILD_TARGET: ${{ inputs.target }}
           SENSOS_RELEASE_VERSION: ${{ inputs.version }}
           SENSOS_RELEASE_BUILD: 'true'
           SENSOS_REGISTRY_ENDPOINT: ${{ inputs.registry_endpoint }}
           SENSOS_STREAMS_URL: ${{ inputs.streams_url }}
+        run: bun run --cwd packages/cli scripts/build-sensos.ts
+      - name: Verify CLI version
+        env:
+          SENSOS_BUILD_TARGET: ${{ inputs.target }}
+          SENSOS_RELEASE_VERSION: ${{ inputs.version }}
+        run: test "$(packages/cli/dist/sensos-$SENSOS_BUILD_TARGET --version)" = "$SENSOS_RELEASE_VERSION"
+      - name: Package binary
+        env:
+          SENSOS_BUILD_TARGET: ${{ inputs.target }}
           ASSET_DIR: ${{ runner.temp }}/release-assets
           ASSET: ${{ inputs.asset }}
         run: |
-          bun run turbo:build --force --filter=@sensos-ai/shared --filter=@sensos-ai/client
-          bun run --cwd packages/cli scripts/build-sensos.ts
           bun run scripts/release/archive.ts
           test -f "$ASSET_DIR/sensos-$ASSET.tar.gz"
-          test "$(packages/cli/dist/sensos-$SENSOS_BUILD_TARGET --version)" = "$SENSOS_RELEASE_VERSION"
-      - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
+      - name: Attest binary
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
         id: attestation
         with:
           subject-path: ${{ runner.temp }}/release-assets/sensos-${{ inputs.asset }}.tar.gz
@@ -94,7 +103,8 @@ jobs:
         run: |
           test -s "$BUNDLE_PATH"
           cp "$BUNDLE_PATH" "$ASSET_DIR/sensos-$TARGET.intoto.jsonl"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: release-${{ inputs.target }}
           path: |
