@@ -28,7 +28,7 @@
     },
     "packages/cli": {
       "name": "@sensos-ai/cli",
-      "version": "0.1.0",
+      "version": "0.0.0",
       "bin": {
         "sensos": "./dist/sensos",
         "sensos-dev": "./src/cli/bootstrap.ts",
@@ -50,7 +50,7 @@
     },
     "packages/client": {
       "name": "@sensos-ai/client",
-      "version": "0.1.0",
+      "version": "0.0.0",
       "dependencies": {
         "@durable-streams/client": "^0.2.7",
         "@sensos-ai/shared": "workspace:*",
@@ -61,7 +61,7 @@
     },
     "packages/shared": {
       "name": "@sensos-ai/shared",
-      "version": "0.1.0",
+      "version": "0.0.0",
       "dependencies": {
         "ai": "catalog:",
         "rivetkit": "^2.3.12",
