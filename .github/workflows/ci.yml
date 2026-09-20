@@ -5,13 +5,15 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  merge_group:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name != 'push' }}
 
 jobs:
   changes:
@@ -21,13 +23,13 @@ jobs:
     outputs:
       packages: ${{ steps.filter.outputs.packages }}
     steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Detect package infrastructure changes
+      - name: Detect relevant changes
         id: filter
+        shell: bash
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
           BEFORE_SHA: ${{ github.event.before }}
@@ -45,198 +47,167 @@ jobs:
             base="HEAD^"
           fi
           changed_files="$(git diff --name-only "$base" HEAD)"
-          if printf '%s\n' "$changed_files" | grep -Eq '^((packages/|scripts/(ci|release)/|\.github/actions/autoship/|scripts/test-remote-e2e\.ts$)|package\.json$|bun\.lock$|bunup\.config\.ts$|turbo\.json$|biome\.json(c)?$|tsconfig\.json$|\.github/workflows/(ci|prepare-release|tag-release|canary|release)\.yml$)'; then
+          if printf '%s\n' "$changed_files" | grep -v '^apps/docs/' | grep -Eq '^(apps/|packages/|scripts/|\.github/(actions/|workflows/)|\.changeset/|\.release/preparation\.json$|package\.json$|bun\.lock$|bunup\.config\.ts$|turbo\.json$|biome\.json(c)?$|tsconfig[^/]*\.json$)'; then
             echo "packages=true" >> "$GITHUB_OUTPUT"
           else
             echo "packages=false" >> "$GITHUB_OUTPUT"
           fi
-
-  static-analysis:
-    name: Static Analysis
-    needs: changes
-    if: needs.changes.outputs.packages == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      id-token: write
-    env:
-      TURBO_CACHE: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'local:rw,remote:r' || 'local:rw,remote:rw' }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-      - name: Set up Turborepo Remote Cache
-        if: vars.TURBO_TEAM != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
-        with:
-          team: ${{ vars.TURBO_TEAM }}
-      - run: bun install --frozen-lockfile
-      - run: bunx turbo run lint typecheck --filter='./packages/*'
-
-  unit-tests:
-    name: Unit Tests
-    needs: changes
-    if: needs.changes.outputs.packages == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      id-token: write
-    env:
-      TURBO_CACHE: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'local:rw,remote:r' || 'local:rw,remote:rw' }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-      - name: Set up Turborepo Remote Cache
-        if: vars.TURBO_TEAM != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
-        with:
-          team: ${{ vars.TURBO_TEAM }}
-      - run: bun install --frozen-lockfile
-      - run: bunx turbo run test --filter='./packages/*'
-
-  build-packages:
-    name: Build Packages
-    needs: changes
-    if: needs.changes.outputs.packages == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      id-token: write
-    env:
-      TURBO_CACHE: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'local:rw,remote:r' || 'local:rw,remote:rw' }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-      - name: Set up Turborepo Remote Cache
-        if: vars.TURBO_TEAM != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
-        with:
-          team: ${{ vars.TURBO_TEAM }}
-      - run: bun install --frozen-lockfile
-      - run: bunx turbo run build --filter=@sensos-ai/shared --filter=@sensos-ai/client
-      - run: bun run scripts/ci/validate-package-tarballs.ts
-
-  build-cli:
-    name: Build CLI
-    needs: changes
-    if: needs.changes.outputs.packages == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      id-token: write
-    env:
-      TURBO_CACHE: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'local:rw,remote:r' || 'local:rw,remote:rw' }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-      - name: Set up Turborepo Remote Cache
-        if: vars.TURBO_TEAM != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
-        with:
-          team: ${{ vars.TURBO_TEAM }}
-      - run: bun install --frozen-lockfile
-      - run: bunx turbo run build --filter=@sensos-ai/cli
-      - run: bun run scripts/ci/validate-cli-binaries.ts
-
-  pkg-pr-new:
-    name: Publish with pkg-pr-new
-    needs: [changes, static-analysis, unit-tests, build-packages, build-cli]
-    if: >-
-      needs.changes.outputs.packages == 'true' &&
-      (github.event_name == 'push' ||
-       github.event_name == 'workflow_dispatch' ||
-       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository))
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      id-token: write
-    env:
-      TURBO_CACHE: ${{ github.event_name == 'pull_request' && 'local:rw,remote:r' || 'local:rw,remote:rw' }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-      - name: Set up Turborepo Remote Cache
-        if: vars.TURBO_TEAM != ''
-        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
-        with:
-          team: ${{ vars.TURBO_TEAM }}
-      - run: bun install --frozen-lockfile
-      - run: bunx turbo run build --filter=@sensos-ai/shared --filter=@sensos-ai/client
-      - name: Publish shared and client previews
-        id: publish
-        run: >-
-          bun run pkg-pr-new publish
-          --previewVersion --packageManager=bun --comment=update --bun
-          ./packages/shared ./packages/client
-      - name: Add preview URLs to job summary
+      - name: Record validated push identity
+        if: github.event_name == 'push'
         env:
-          PREVIEW_URLS: ${{ steps.publish.outputs.urls }}
+          SOURCE_SHA: ${{ github.sha }}
+          BASE_SHA: ${{ github.event.before }}
+          RUN_NUMBER: ${{ github.run_number }}
         run: |
-          {
-            echo "## pkg.pr.new previews"
-            echo
-            for url in $PREVIEW_URLS; do echo "- $url"; done
-          } >> "$GITHUB_STEP_SUMMARY"
+          printf '{"source_sha":"%s","base_sha":"%s","run_number":%s}\n' "$SOURCE_SHA" "$BASE_SHA" "$RUN_NUMBER" > ci-source.json
+      - name: Upload push identity
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ci-source
+          path: ci-source.json
+          if-no-files-found: error
+          retention-days: 30
+
+  lint:
+    name: Lint
+    needs: changes
+    if: needs.changes.outputs.packages == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TURBO_CACHE: ${{ github.event_name == 'push' && 'local:rw,remote:rw' || 'local:rw,remote:r' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+      - name: Restore Bun downloads
+        id: bun-cache
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-1.4.2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+      - name: Set up Turborepo Remote Cache
+        if: vars.TURBO_TEAM != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
+        with:
+          team: ${{ vars.TURBO_TEAM }}
+      - run: bun install --frozen-lockfile
+      - name: Save Bun downloads
+        if: github.event_name == 'push' && steps.bun-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ steps.bun-cache.outputs.cache-primary-key }}
+      - run: bun run turbo:lint
+      - name: Validate GitHub Actions semantics
+        shell: bash
+        run: |
+          curl --fail --location --silent --show-error --retry 3 \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+            --output "$RUNNER_TEMP/actionlint.tar.gz"
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check -
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes=
+
+  typecheck:
+    name: Typecheck
+    needs: changes
+    if: needs.changes.outputs.packages == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TURBO_CACHE: ${{ github.event_name == 'push' && 'local:rw,remote:rw' || 'local:rw,remote:r' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+      - name: Restore Bun downloads
+        id: bun-cache
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-1.4.2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+      - name: Set up Turborepo Remote Cache
+        if: vars.TURBO_TEAM != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
+        with:
+          team: ${{ vars.TURBO_TEAM }}
+      - run: bun install --frozen-lockfile
+      - run: bun run turbo:typecheck
+
+  tests:
+    name: Tests
+    needs: changes
+    if: needs.changes.outputs.packages == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TURBO_CACHE: ${{ github.event_name == 'push' && 'local:rw,remote:rw' || 'local:rw,remote:r' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+      - name: Restore Bun downloads
+        id: bun-cache
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-1.4.2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+      - name: Set up Turborepo Remote Cache
+        if: vars.TURBO_TEAM != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
+        with:
+          team: ${{ vars.TURBO_TEAM }}
+      - run: bun install --frozen-lockfile
+      - run: bun run turbo:test
 
   checks:
+    name: checks
     if: always()
-    needs:
-      [
-        changes,
-        static-analysis,
-        unit-tests,
-        build-packages,
-        build-cli,
-        pkg-pr-new,
-      ]
+    needs: [changes, lint, typecheck, tests]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Require successful package validation
+      - name: Require successful validation
+        shell: bash
         env:
-          PERMISSIONS_RESULT: ${{ needs.check-permissions.result }}
           PACKAGE_CHANGES: ${{ needs.changes.outputs.packages }}
           CHANGES_RESULT: ${{ needs.changes.result }}
-          STATIC_ANALYSIS_RESULT: ${{ needs.static-analysis.result }}
-          UNIT_TESTS_RESULT: ${{ needs.unit-tests.result }}
-          BUILD_PACKAGES_RESULT: ${{ needs.build-packages.result }}
-          BUILD_CLI_RESULT: ${{ needs.build-cli.result }}
-          PKG_PR_NEW_RESULT: ${{ needs.pkg-pr-new.result }}
+          LINT_RESULT: ${{ needs.lint.result }}
+          TYPECHECK_RESULT: ${{ needs.typecheck.result }}
+          TESTS_RESULT: ${{ needs.tests.result }}
         run: |
-          if [[ "$PERMISSIONS_RESULT" != "success" ]]; then
-            echo "The triggering actor is not authorized to run CI for this fork."
-            exit 1
-          fi
           if [[ "$CHANGES_RESULT" != "success" ]]; then
-            echo "Package change detection failed."
+            echo "Change detection failed."
             exit 1
           fi
           if [[ "$PACKAGE_CHANGES" != "true" ]]; then
-            echo "No package infrastructure changes; package jobs were intentionally skipped."
+            echo "No package changes; validation was intentionally skipped."
             exit 0
           fi
-          for result in "$STATIC_ANALYSIS_RESULT" "$UNIT_TESTS_RESULT" "$BUILD_PACKAGES_RESULT" "$BUILD_CLI_RESULT"; do
+          for result in "$LINT_RESULT" "$TYPECHECK_RESULT" "$TESTS_RESULT"; do
             if [[ "$result" != "success" ]]; then
-              echo "A required package validation job did not succeed."
+              echo "A required validation job did not succeed."
               exit 1
             fi
           done
-          if [[ "$PKG_PR_NEW_RESULT" != "success" && "$PKG_PR_NEW_RESULT" != "skipped" ]]; then
-            echo "Package preview publication failed."
-            exit 1
-          fi
-          echo "All required package validation succeeded."
+          echo "All required validation succeeded."

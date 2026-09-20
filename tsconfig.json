@@ -13,7 +13,10 @@
     "resolveJsonModule": true,
     "verbatimModuleSyntax": false,
     "noUncheckedSideEffectImports": true,
-    "types": ["bun"]
+    "types": ["bun"],
+    "paths": {
+      "actions/*": ["./.github/actions/*"]
+    }
   },
   "include": [".github/actions/", "scripts"]
 }

@@ -1,0 +1,103 @@
+name: Build release binaries
+
+on:
+  workflow_call:
+    inputs:
+      source_sha:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      target:
+        required: true
+        type: string
+      runner:
+        required: true
+        type: string
+      engine_build_id:
+        required: true
+        type: string
+      registry_endpoint:
+        required: true
+        type: string
+      streams_url:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ inputs.target }}
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Validate release configuration
+        env:
+          TARGET: ${{ inputs.target }}
+          VERSION: ${{ inputs.version }}
+          ENGINE_BUILD_ID: ${{ inputs.engine_build_id }}
+          REGISTRY_ENDPOINT: ${{ inputs.registry_endpoint }}
+          STREAMS_URL: ${{ inputs.streams_url }}
+        run: |
+          [[ "$TARGET" =~ ^(linux|darwin)-(x64|arm64)$ ]]
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-canary\.[0-9]+)?$ ]]
+          [[ -n "$ENGINE_BUILD_ID" && -n "$REGISTRY_ENDPOINT" && -n "$STREAMS_URL" ]]
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+      - uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-1.4.2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+      - name: Install dependencies and target native binding
+        run: |
+          bun install --frozen-lockfile --os='*' --cpu='*'
+          bun -e 'import { targets } from "./scripts/lib/targets.ts"; const target = targets.find(target => target.name === process.env.SENSOS_BUILD_TARGET); if (!target) throw new Error("Unknown target"); const parent = Bun.resolveSync("@napi-rs/keyring", `${process.cwd()}/packages/cli`); const binding = Bun.resolveSync(`@napi-rs/keyring-${target.keyring}`, parent); if (!(await Bun.file(binding).exists())) throw new Error(`Missing ${binding}`)'
+        env:
+          SENSOS_BUILD_TARGET: ${{ inputs.target }}
+      - name: Compile and archive
+        env:
+          SENSOS_BUILD_TARGET: ${{ inputs.target }}
+          SENSOS_RELEASE_VERSION: ${{ inputs.version }}
+          SENSOS_RELEASE_BUILD: 'true'
+          SENSOS_ENGINE_BUILD_ID: ${{ inputs.engine_build_id }}
+          SENSOS_REGISTRY_ENDPOINT: ${{ inputs.registry_endpoint }}
+          SENSOS_STREAMS_URL: ${{ inputs.streams_url }}
+          ASSET_DIR: ${{ runner.temp }}/release-assets
+        run: |
+          bun run turbo:build --force --filter=@sensos-ai/shared --filter=@sensos-ai/client
+          bun run --cwd packages/cli scripts/build-sensos.ts
+          bun run scripts/release/archive.ts
+          test -f "$ASSET_DIR/sensos-$SENSOS_BUILD_TARGET.tar.gz"
+          test "$(packages/cli/dist/sensos-$SENSOS_BUILD_TARGET --version)" = "$SENSOS_RELEASE_VERSION"
+      - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
+        id: attestation
+        with:
+          subject-path: ${{ runner.temp }}/release-assets/sensos-${{ inputs.target }}.tar.gz
+      - name: Include attestation bundle with release assets
+        env:
+          ASSET_DIR: ${{ runner.temp }}/release-assets
+          TARGET: ${{ inputs.target }}
+          BUNDLE_PATH: ${{ steps.attestation.outputs.bundle-path }}
+        run: |
+          test -s "$BUNDLE_PATH"
+          cp "$BUNDLE_PATH" "$ASSET_DIR/sensos-$TARGET.intoto.jsonl"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-${{ inputs.target }}
+          path: |
+            ${{ runner.temp }}/release-assets/sensos-${{ inputs.target }}.tar.gz
+            ${{ runner.temp }}/release-assets/sensos-${{ inputs.target }}.intoto.jsonl
+          if-no-files-found: error
+          retention-days: 30

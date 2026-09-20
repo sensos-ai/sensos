@@ -6,6 +6,19 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/bunup.config.ts",
+        "$TURBO_ROOT$/scripts/lib/targets.ts"
+      ],
+      "env": [
+        "SENSOS_RELEASE_VERSION",
+        "SENSOS_RELEASE_BUILD",
+        "SENSOS_BUILD_TARGET",
+        "SENSOS_ENGINE_BUILD_ID",
+        "SENSOS_REGISTRY_ENDPOINT",
+        "SENSOS_STREAMS_URL"
+      ],
       "outputs": ["dist/**"]
     },
     "build:packages": {
@@ -13,7 +26,7 @@
       "outputs": ["dist/**"]
     },
     "test": {
-      "dependsOn": ["build"]
+      "dependsOn": ["^build"]
     },
     "lint": {},
     "format": {
@@ -26,6 +39,22 @@
       "cache": false
     },
     "//#clean": {
+      "cache": false
+    },
+    "//#lint:tooling": {
+      "inputs": [
+        "scripts/**",
+        ".github/**",
+        "package.json",
+        "turbo.json",
+        "tsconfig.json",
+        "biome.jsonc"
+      ]
+    },
+    "//#typecheck:tooling": {
+      "inputs": ["scripts/**", ".github/**", "tsconfig.json"]
+    },
+    "//#format:tooling": {
       "cache": false
     }
   }

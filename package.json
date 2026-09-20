@@ -16,12 +16,23 @@
     "ai": "^7.0.107"
   },
   "scripts": {
+    "turbo:build": "turbo run build",
+    "turbo:typecheck": "turbo run typecheck typecheck:tooling",
+    "turbo:lint": "turbo run lint lint:tooling",
+    "turbo:test": "turbo run test",
+    "turbo:check": "turbo run lint lint:tooling typecheck typecheck:tooling test build",
+    "lint:tooling": "biome check scripts .github package.json turbo.json tsconfig.json && bun run scripts/ci/validate-workflows.ts",
+    "typecheck:tooling": "tsc --noEmit -p tsconfig.json",
+    "format:tooling": "biome format --write scripts .github package.json turbo.json tsconfig.json",
+    "publish:preview": "bun run scripts/release/publish-preview.ts",
+    "publish:packages": "bun run scripts/release/publish-packages.ts",
+    "changeset:version": "changeset version && bun install",
     "build:packages": "bunup --filter shared,client",
     "build": "turbo run build",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
-    "format": "turbo run format",
+    "format": "turbo run format format:tooling",
     "check": "turbo run lint typecheck test build",
     "test:e2e:remote": "bun run scripts/test-remote-e2e.ts",
     "registry:validate": "bunx --bun shadcn@latest registry validate registry.json",
@@ -31,6 +42,7 @@
     "clean": "git clean -xdf node_modules"
   },
   "devDependencies": {
+    "@changesets/cli": "^3.0.3",
     "@biomejs/biome": "^2.5.13",
     "@types/bun": "^1.4.2",
     "@types/node": "^26.6.1",

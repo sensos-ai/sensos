@@ -1,63 +1,52 @@
 name: Autoship release preparation
-description: Resolve a release type, calculate the next version, and generate validated release metadata.
-
+description: Resolve a release type, generate notes, and stage one Changeset.
 inputs:
   release_type:
-    description: Optional semantic release type used to calculate the next version; when empty, AI evaluation suggests one.
+    description: Optional semantic release type; when empty, AI evaluation suggests one.
     required: false
     default: ""
   evaluation-model:
-    description: AI Gateway evaluation model used to suggest the release type.
+    description: AI Gateway model used to suggest the release type.
     required: false
     default: typesafe-ai/jev
   changelog-model:
-    description: AI Gateway model used to generate the changelog.
+    description: AI Gateway model used to generate release notes.
     required: true
   ai-gateway-api-key:
-    description: AI Gateway API key used for evaluation and changelog generation.
+    description: AI Gateway API key.
     required: true
-
 outputs:
-  branch:
-    description: Release preparation branch name.
-    value: ${{ steps.metadata.outputs.branch }}
   release_type:
     description: Resolved release type.
     value: ${{ steps.metadata.outputs.release_type }}
   version:
-    description: Next stable version without the leading v.
+    description: Next stable version without v.
     value: ${{ steps.metadata.outputs.version }}
-
 runs:
   using: composite
   steps:
     - name: Install release dependencies
       shell: bash
       run: bun install --frozen-lockfile
-
-    - name: Resolve release type and calculate next version
+    - name: Resolve release type
       shell: bash
       env:
         AI_GATEWAY_API_KEY: ${{ inputs.ai-gateway-api-key }}
         RELEASE_TYPE: ${{ inputs.release_type }}
         EVAL_MODEL: ${{ inputs.evaluation-model }}
       run: bun run "$GITHUB_ACTION_PATH/bump-version.ts" "$RELEASE_TYPE"
-
-    - name: Generate changelog
+    - name: Generate release notes
       shell: bash
       env:
         AI_GATEWAY_API_KEY: ${{ inputs.ai-gateway-api-key }}
         CHANGELOG_MODEL: ${{ inputs.changelog-model }}
       run: bun run "$GITHUB_ACTION_PATH/generate-changelog.ts"
-
-    - name: Prepare release metadata
+    - name: Stage Changeset and version inputs
       shell: bash
       run: bun run "$GITHUB_ACTION_PATH/prepare-release.ts"
-
     - name: Export release metadata
       id: metadata
       shell: bash
       run: |
-        echo "branch=$(jq --raw-output .branch .release/preparation.json)" >> "$GITHUB_OUTPUT"
-        echo "release_type=$(jq --raw-output .releaseType .release/preparation.json)" >> "$GITHUB_OUTPUT"
-        echo "version=$(jq --raw-output .version .release/preparation.json)" >> "$GITHUB_OUTPUT"
+        echo "release_type=$(jq --raw-output .releaseType .release/version.json)" >> "$GITHUB_OUTPUT"
+        echo "version=$(jq --raw-output .nextVersion .release/version.json)" >> "$GITHUB_OUTPUT"

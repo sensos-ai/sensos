@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
+  "changelog": "@changesets/cli/changelog",
+  "commit": false,
+  "fixed": [["@sensos-ai/cli", "@sensos-ai/shared", "@sensos-ai/client"]],
+  "linked": [],
+  "access": "restricted",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": ["@sensos-ai/docs"],
+  "privatePackages": { "version": true, "tag": true },
+  "snapshot": { "useCalculatedVersion": true, "prereleaseTemplate": "{tag}" }
+}

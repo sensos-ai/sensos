@@ -40,3 +40,6 @@ CLAUDE.local.md
 .agents/plans
 .claude/plans/
 .claude/settings.local.json
+.release/artifacts/
+.release/staging/
+.release/preview.json

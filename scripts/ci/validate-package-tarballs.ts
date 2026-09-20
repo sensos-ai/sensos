@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { validatePackage } from '../release/stage-packages'
 
 const packages = ['shared', 'client'] as const
 
@@ -65,6 +66,7 @@ try {
     )
 
     const packedRoot = join(archiveDirectory, 'package')
+    await validatePackage(packedRoot)
     const packedManifest = JSON.parse(
       await readFile(join(packedRoot, 'package.json'), 'utf8')
     ) as Record<string, unknown>
@@ -73,7 +75,11 @@ try {
     )
 
     for (const file of packedFiles) {
-      if (file !== 'package.json' && !file.startsWith('dist/')) {
+      if (
+        file !== 'package.json' &&
+        !file.startsWith('dist/') &&
+        !/^(README|CHANGELOG|LICENSE)(\.[^/]*)?$/i.test(file)
+      ) {
         throw new Error(`${packageName}: unexpected packed file ${file}`)
       }
     }

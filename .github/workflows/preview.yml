@@ -1,0 +1,54 @@
+name: Package previews
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - apps/**
+      - '!apps/docs/**'
+      - packages/**
+      - scripts/**
+      - .github/actions/**
+      - .github/workflows/preview.yml
+      - package.json
+      - bun.lock
+      - bunup.config.ts
+      - turbo.json
+      - tsconfig*.json
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: Publish shared/client previews
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TURBO_CACHE: local:rw,remote:r
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+      - name: Restore Bun downloads
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-1.4.2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+      - name: Set up Turborepo Remote Cache
+        if: vars.TURBO_TEAM != ''
+        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
+        with:
+          team: ${{ vars.TURBO_TEAM }}
+      - run: bun install --frozen-lockfile
+      - run: bun run publish:preview

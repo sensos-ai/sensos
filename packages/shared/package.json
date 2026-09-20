@@ -2,6 +2,15 @@
   "name": "@sensos-ai/shared",
   "version": "0.1.0",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sensos-ai/sensos.git",
+    "directory": "packages/shared"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
@@ -39,7 +48,7 @@
     "lint": "biome check",
     "format": "biome format --write",
     "test": "bun test --pass-with-no-tests",
-    "prepublishOnly": "node -e \"throw new Error('npm publication is disabled; use pkg.pr.new previews')\""
+    "prepublishOnly": "node -e \"if ((process.env.npm_config_registry || process.env.npm_package_publishConfig_registry || '').replace(/\\/$/, '') !== 'https://npm.pkg.github.com') throw new Error('Only GitHub Packages publication is allowed')\""
   },
   "dependencies": {
     "ai": "catalog:",

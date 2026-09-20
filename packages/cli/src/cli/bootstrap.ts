@@ -3,6 +3,21 @@
 import { join } from 'node:path'
 import { normalizeCliInvocation } from './state'
 
+declare const __SENSOS_VERSION__: string
+
+if (
+  process.argv
+    .slice(2)
+    .some(argument => argument === '--version' || argument === '-V')
+) {
+  const version =
+    typeof __SENSOS_VERSION__ === 'string'
+      ? __SENSOS_VERSION__
+      : (await import('../../package.json')).version
+  console.log(version)
+  process.exit(0)
+}
+
 const invocation = normalizeCliInvocation(process.argv.slice(2))
 process.argv.splice(2, process.argv.length - 2, ...invocation.argv)
 process.env.SENSOS_CLI_INTERACTIVE = invocation.state.isInteractive

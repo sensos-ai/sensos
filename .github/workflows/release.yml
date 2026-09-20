@@ -1,0 +1,164 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sensos-publication
+  cancel-in-progress: false
+
+jobs:
+  classify:
+    name: Classify validated main commit
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      channel: ${{ steps.release.outputs.channel }}
+      version: ${{ steps.release.outputs.version }}
+      source_sha: ${{ steps.release.outputs.source_sha }}
+      tag: ${{ steps.release.outputs.tag }}
+      release_name: ${{ steps.release.outputs.release_name }}
+      targets: ${{ steps.targets.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+      - name: Download validated push identity
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ci-source
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/ci-source
+      - name: Classify before installation
+        id: release
+        env:
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ github.token }}
+          CI_RUN_NUMBER: ${{ github.event.workflow_run.run_number }}
+          CI_SOURCE_PATH: ${{ runner.temp }}/ci-source/ci-source.json
+        run: bun run scripts/release/classify.ts
+      - name: Read shared target definition
+        id: targets
+        if: steps.release.outputs.channel != 'none'
+        run: |
+          echo "matrix=$(bun run scripts/release/targets.ts)" >> "$GITHUB_OUTPUT"
+
+  binaries:
+    name: Build ${{ matrix.name }}
+    needs: classify
+    if: needs.classify.outputs.channel != 'none'
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.classify.outputs.targets) }}
+    uses: ./.github/workflows/build-binaries.yml
+    with:
+      source_sha: ${{ needs.classify.outputs.source_sha }}
+      version: ${{ needs.classify.outputs.version }}
+      target: ${{ matrix.name }}
+      runner: ${{ matrix.runner }}
+      engine_build_id: ${{ vars.SENSOS_ENGINE_BUILD_ID }}
+      registry_endpoint: ${{ vars.SENSOS_REGISTRY_ENDPOINT }}
+      streams_url: ${{ vars.SENSOS_STREAMS_URL }}
+
+  publish:
+    name: Publish ${{ needs.classify.outputs.channel }}
+    needs: [classify, binaries]
+    if: needs.classify.outputs.channel != 'none'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    env:
+      CHANNEL: ${{ needs.classify.outputs.channel }}
+      VERSION: ${{ needs.classify.outputs.version }}
+      SOURCE_SHA: ${{ needs.classify.outputs.source_sha }}
+      CI_RUN_NUMBER: ${{ github.event.workflow_run.run_number }}
+      GH_TOKEN: ${{ github.token }}
+      NODE_AUTH_TOKEN: ${{ github.token }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
+      R2_BUCKET: ${{ vars.R2_BUCKET }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.classify.outputs.source_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+      - name: Set release paths
+        run: |
+          echo "NPM_CONFIG_USERCONFIG=$RUNNER_TEMP/release.npmrc" >> "$GITHUB_ENV"
+          echo "ASSET_DIR=$RUNNER_TEMP/release-assets" >> "$GITHUB_ENV"
+      - uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-1.4.2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+      - run: bun install --frozen-lockfile
+      - name: Authenticate GitHub Packages reads and writes
+        run: |
+          echo '@sensos-ai:registry=https://npm.pkg.github.com' > "$NPM_CONFIG_USERCONFIG"
+          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> "$NPM_CONFIG_USERCONFIG"
+      - name: Apply disposable canary snapshot
+        if: env.CHANNEL == 'canary'
+        run: bun run scripts/release/snapshot.ts
+      - name: Select registry publication mode
+        id: mode
+        uses: changesets/action/select-mode@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+      - name: Reject unversioned release state
+        if: steps.mode.outputs.mode == 'version'
+        run: |
+          echo 'Changesets requires versioning; release checkout must already have a publishable version.' >&2
+          exit 1
+      - name: Build libraries
+        run: bun run turbo:build --force --filter=@sensos-ai/shared --filter=@sensos-ai/client
+      - name: Publish private shared and client packages
+        if: steps.mode.outputs.mode == 'publish'
+        uses: changesets/action/publish@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+        with:
+          github-token: ${{ github.token }}
+          script: bun run publish:packages
+          create-github-releases: 'false'
+      - name: Download four validated archives
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/release-assets
+      - name: Verify archive set and write checksums
+        run: |
+          bun -e 'import { targets } from "./scripts/lib/targets.ts"; for (const target of targets) { const file = `${process.env.ASSET_DIR}/sensos-${target.name}.tar.gz`; if (!(await Bun.file(file).exists())) throw new Error(`Missing ${file}`) }'
+          bun -e 'import { targets } from "./scripts/lib/targets.ts"; import { createHash } from "node:crypto"; import { writeFile } from "node:fs/promises"; import { join } from "node:path"; const dir = process.env.ASSET_DIR!; const names = targets.map(target => `sensos-${target.name}.tar.gz`).sort((a,b) => a.localeCompare(b)); const lines = await Promise.all(names.map(async name => { const digest = createHash("sha256").update(await Bun.file(join(dir,name)).bytes()).digest("hex"); return `${digest}  ${name}\n` })); await writeFile(join(dir,"SHA256SUMS"),lines.join(""))'
+      - name: Publish GitHub release, R2 assets, and channel pointer
+        run: bun run scripts/release/publish-assets.ts
