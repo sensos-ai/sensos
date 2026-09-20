@@ -16,6 +16,7 @@ const RELEASE_PATHS = [
   'turbo.json',
 ]
 const MAX_COMMITS_LENGTH = 12_000
+// Limits use JavaScript string length (UTF-16 code units), not tokens.
 const MAX_DIFF_LENGTH = 48_000
 
 async function run(command: string[]): Promise<string> {
@@ -36,7 +37,7 @@ async function run(command: string[]): Promise<string> {
 
 function truncate(value: string, maximumLength: number): string {
   if (value.length <= maximumLength) return value
-  return `${value.slice(0, maximumLength)}\n[context truncated]`
+  return `${value.slice(0, maximumLength)}\n\n[context truncated at ${maximumLength} UTF-16 code units; ${value.length} total]`
 }
 
 async function main(): Promise<void> {
@@ -122,6 +123,15 @@ async function main(): Promise<void> {
   const context = {
     commits: truncate(commits, MAX_COMMITS_LENGTH),
     diff: truncate(diff, MAX_DIFF_LENGTH),
+    diffStat: await run([
+      'git',
+      'diff',
+      '--stat',
+      diffBase,
+      'HEAD',
+      '--',
+      ...RELEASE_PATHS,
+    ]),
     filesChanged,
     previousVersion: latestRelease?.version ?? currentVersion.version,
   }

@@ -1,18 +1,14 @@
 import { generateChangelog } from './lib/ai'
+import { CHANGELOG_HEADINGS } from './lib/changelog'
 import { parseStableRelease } from './lib/semver'
 
-const ALLOWED_HEADINGS = new Set([
-  'Added',
-  'Changed',
-  'Deprecated',
-  'Fixed',
-  'Removed',
-  'Security',
-])
+const ALLOWED_HEADINGS = new Set<string>(CHANGELOG_HEADINGS)
 
 type VersionMetadata = {
   commits: string
   diff: string
+  diffStat: string
+  latestTag: string | null
   nextVersion: string
 }
 
@@ -57,7 +53,7 @@ function validateChangelog(markdown: string): string {
       bulletsInSection = 0
       continue
     }
-    if (!sawHeading || !line.startsWith('- ') || line.length <= 2) {
+    if (!sawHeading || !/^- \*\*[^*]+:\*\* \S/.test(line)) {
       throw new Error(`Invalid changelog line: ${line}`)
     }
     bulletsInSection += 1
