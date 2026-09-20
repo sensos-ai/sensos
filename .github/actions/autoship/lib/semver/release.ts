@@ -54,6 +54,10 @@ export class Release {
     return this.version
   }
 
+  private copy(): Release {
+    return new Release(this.current, { tagged: this.isTagged })
+  }
+
   // Call only after the corresponding Git tag has been created successfully.
   markTagged(): string {
     if (this.isTagged) {
@@ -99,7 +103,11 @@ export class Release {
     return this.transition(new SemVer(this.version).inc('release'))
   }
 
-  next(releaseType: StableReleaseType): this {
+  next(releaseType: StableReleaseType): Release {
+    return this.copy().bump(releaseType)
+  }
+
+  bump(releaseType: StableReleaseType): this {
     if (this.isPrerelease) {
       throw new Error(
         'Promote the current prerelease before bumping a stable release'
@@ -116,9 +124,5 @@ export class Release {
     return this.isPrerelease
       ? this.nextPrerelease(identifier)
       : this.startPrerelease('patch', identifier)
-  }
-
-  bump(releaseType: StableReleaseType): this {
-    return this.next(releaseType)
   }
 }
