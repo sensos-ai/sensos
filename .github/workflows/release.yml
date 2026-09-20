@@ -55,6 +55,22 @@ jobs:
           CI_RUN_NUMBER: ${{ github.event.workflow_run.run_number }}
           CI_SOURCE_PATH: ${{ runner.temp }}/ci-source/ci-source.json
         run: bun run scripts/release/classify.ts
+      - name: Validate publication configuration
+        if: steps.release.outputs.channel != 'none'
+        env:
+          R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          SENSOS_REGISTRY_ENDPOINT: ${{ vars.SENSOS_REGISTRY_ENDPOINT }}
+          SENSOS_STREAMS_URL: ${{ vars.SENSOS_STREAMS_URL }}
+        run: |
+          for name in R2_ENDPOINT R2_BUCKET R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY SENSOS_REGISTRY_ENDPOINT SENSOS_STREAMS_URL; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing $name" >&2
+              exit 1
+            fi
+          done
       - name: Read shared target definition
         id: targets
         if: steps.release.outputs.channel != 'none'
@@ -78,7 +94,6 @@ jobs:
       version: ${{ needs.classify.outputs.version }}
       target: ${{ matrix.name }}
       runner: ${{ matrix.runner }}
-      engine_build_id: ${{ vars.SENSOS_ENGINE_BUILD_ID }}
       registry_endpoint: ${{ vars.SENSOS_REGISTRY_ENDPOINT }}
       streams_url: ${{ vars.SENSOS_STREAMS_URL }}
 

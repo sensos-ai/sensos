@@ -15,9 +15,6 @@ on:
       runner:
         required: true
         type: string
-      engine_build_id:
-        required: true
-        type: string
       registry_endpoint:
         required: true
         type: string
@@ -42,13 +39,12 @@ jobs:
         env:
           TARGET: ${{ inputs.target }}
           VERSION: ${{ inputs.version }}
-          ENGINE_BUILD_ID: ${{ inputs.engine_build_id }}
           REGISTRY_ENDPOINT: ${{ inputs.registry_endpoint }}
           STREAMS_URL: ${{ inputs.streams_url }}
         run: |
           [[ "$TARGET" =~ ^(linux|darwin)-(x64|arm64)$ ]]
           [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-canary\.[0-9]+)?$ ]]
-          [[ -n "$ENGINE_BUILD_ID" && -n "$REGISTRY_ENDPOINT" && -n "$STREAMS_URL" ]]
+          [[ -n "$REGISTRY_ENDPOINT" && -n "$STREAMS_URL" ]]
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.source_sha }}
@@ -71,7 +67,6 @@ jobs:
           SENSOS_BUILD_TARGET: ${{ inputs.target }}
           SENSOS_RELEASE_VERSION: ${{ inputs.version }}
           SENSOS_RELEASE_BUILD: 'true'
-          SENSOS_ENGINE_BUILD_ID: ${{ inputs.engine_build_id }}
           SENSOS_REGISTRY_ENDPOINT: ${{ inputs.registry_endpoint }}
           SENSOS_STREAMS_URL: ${{ inputs.streams_url }}
           ASSET_DIR: ${{ runner.temp }}/release-assets

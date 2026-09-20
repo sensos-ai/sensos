@@ -29,9 +29,9 @@ changing or running tests, fixtures, helpers, runners, or test infrastructure.
 
 ## Engine compatibility
 
-- Build releases with the matching `SENSOS_ENGINE_BUILD_ID` supplied by the
-  engine artifact release. The CLI uses this identity to decide whether an
-  existing local engine can be reused.
+- Build remote-first CLI releases with production registry and stream URLs.
+  Local engine compatibility remains deferred until the backend publishes
+  matching engine artifacts.
 - Run `bun run turbo:build` after source, dependency, generated protocol, or
   build-configuration changes before testing `dist/sensos`.
 - Local mode launches a separate `sensos-engine`; it never imports or embeds

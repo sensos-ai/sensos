@@ -4,7 +4,7 @@
 
 - PRs: `CI / checks` requires lint, typecheck, and unit tests. Docs-only changes skip installation. No workflow runs E2E or integration suites.
 - Same-repository PRs: **Package previews** independently publishes shared/client with the repository-installed pkg.pr.new. Its summary contains install commands; failure is not a required check. CLI packages are never published.
-- Main: successful push CI hands its exact source/base SHAs to **Release**. Relevant normal pushes produce `next-patch-canary.<CI-run-number>` snapshots; docs-only pushes do nothing.
+- Main: successful push CI hands its exact source/base SHAs to **Release**. Relevant normal pushes produce `next-patch-canary.<CI-run-number>` snapshots (starting at `0.0.1-canary.<run-number>` from the unreleased `0.0.0` baseline); docs-only pushes do nothing.
 - Stable: dispatch **Prepare release** on main, optionally supply `release_type`. Autoship generates notes and a Changeset; Changesets opens/updates `changeset-release/main`. Review and merge it normally. Successful main CI then publishes that stable version. There is no tag-trigger workflow.
 
 Changesets versions CLI/shared/client together. The CLI stays private and is distributed only as compiled binaries; shared/client publish privately to GitHub Packages. Canary version changes exist only in the runner checkout. Do not manually version one package independently.
@@ -21,7 +21,6 @@ Configure these repository variables/secrets before enabling publication:
 | Variable | `EVAL_MODEL` | Optional; defaults to `typesafe-ai/jev` |
 | Variable | `CHANGELOG_MODEL` | AI Gateway changelog model |
 | Variable | `TURBO_TEAM` | Optional Vercel cache team; configure trusted OIDC policies, deny fork identities |
-| Variable | `SENSOS_ENGINE_BUILD_ID` | Identity supplied by the compatible backend engine artifact release; never `development` |
 | Variable | `SENSOS_REGISTRY_ENDPOINT` | Production HTTPS registry endpoint |
 | Variable | `SENSOS_STREAMS_URL` | Production HTTPS streams endpoint |
 | Variable | `R2_ENDPOINT` | `https://<account-id>.r2.cloudflarestorage.com` |
@@ -35,6 +34,8 @@ GitHub package visibility must remain **private**. Link each shared/client packa
 
 The existing installer-upload workflow additionally uses `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_ZONE_ID`. It is separate from binary publication.
 
+Remote-first CLI releases do not require an engine build ID. Local mode still requires a separately installed `sensos-engine`; release binaries are not paired with one yet.
+
 ## Consumers
 
 For backend Actions, grant package-read access to the backend repository, set `permissions: packages: read`, and create a temporary npm config:
@@ -46,7 +47,7 @@ For backend Actions, grant package-read access to the backend repository, set `p
 
 Use that workflow's `GITHUB_TOKEN` as `NODE_AUTH_TOKEN`. Local consumers need a classic PAT with `read:packages` and organization SSO authorization when applicable. Never commit tokens. Install the desired shared/client versions, or use `@canary`. The backend checkout is not changed by this work. PR preview URLs require no private-registry authentication.
 
-CLI users install through `curl -fsSL https://releases.sensos.dev/install | sh`, optionally `sh -s -- canary` or `sh -s -- 0.1.1`. The installer checks `SHA256SUMS` from the same source as the archive and refuses mismatches before replacing the installed binary.
+CLI users install through `curl -fsSL https://releases.sensos.dev/install | sh`, optionally `sh -s -- canary` or `sh -s -- 0.0.1`. The installer checks `SHA256SUMS` from the same source as the archive and refuses mismatches before replacing the installed binary.
 
 ## Artifacts and recovery
 

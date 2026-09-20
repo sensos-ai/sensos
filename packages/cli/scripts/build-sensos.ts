@@ -27,15 +27,8 @@ if (Boolean(engineEndpoint) !== Boolean(streamsEndpoint)) {
   )
 }
 if (process.env.SENSOS_RELEASE_BUILD === 'true') {
-  if (
-    !engineEndpoint ||
-    !streamsEndpoint ||
-    !process.env.SENSOS_ENGINE_BUILD_ID?.trim() ||
-    process.env.SENSOS_ENGINE_BUILD_ID === 'development'
-  ) {
-    throw new Error(
-      'Release builds require production endpoints and SENSOS_ENGINE_BUILD_ID'
-    )
+  if (!engineEndpoint || !streamsEndpoint) {
+    throw new Error('Release builds require production endpoints')
   }
   for (const endpoint of [engineEndpoint, streamsEndpoint]) {
     if (new URL(endpoint).protocol !== 'https:')
