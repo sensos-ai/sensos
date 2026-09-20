@@ -32,7 +32,7 @@ Install the pkg.pr.new GitHub App on this repository. Allow Actions to publish p
 
 GitHub package visibility must remain **private**. Link each shared/client package to this repository and allow the backend repository under package **Manage Actions access**. Private source manifests are not the privacy mechanism: setting `private: true` on the libraries would prohibit publication entirely.
 
-The existing installer-upload workflow additionally uses `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_ZONE_ID`. It is separate from binary publication.
+The installer-upload workflow uses the same R2 S3 credentials as binary publication. It writes `/install` with `Cache-Control: no-store` so subsequent updates are not held by the CDN. Optionally configure `CLOUDFLARE_API_TOKEN` with cache-purge permission and `CLOUDFLARE_ZONE_ID` to purge any already-cached installer or 404 response immediately after upload; without them, an old cached response may remain until its TTL expires.
 
 Remote-first CLI releases do not require an engine build ID. Local mode still requires a separately installed `sensos-engine`; release binaries are not paired with one yet.
 
